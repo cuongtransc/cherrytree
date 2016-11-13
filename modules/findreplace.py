@@ -19,9 +19,17 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #       MA 02110-1301, USA.
 
-import gtk, gobject
-import re, cgi, time
-import cons, menus, support, config
+import cgi
+import gtk
+import re
+import time
+
+from fuzzywuzzy import fuzz
+
+import config
+import cons
+import menus
+import support
 
 
 class FindReplace:
@@ -32,7 +40,7 @@ class FindReplace:
         self.dad = dad
         self.replace_active = False
         self.replace_subsequent = False
-        self.curr_find = [None, ""] # [latest find type, latest find pattern]
+        self.curr_find = [None, ""]  # [latest find type, latest find pattern]
         self.from_find_iterated = False
         self.from_find_back = False
         self.newline_trick = False
@@ -44,13 +52,13 @@ class FindReplace:
         """Exist or Create the Iterated Find Dialog"""
         if self.iteratedfinddialog: return
         dialog = gtk.Dialog(title=_("Iterate Latest Find/Replace"),
-            parent=self.dad.window,
-            flags=gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT,
-            buttons=(_("Close"), 0,
-                     _("Find"), 4,
-                     _("Find"), 1,
-                     _("Replace"), 2,
-                     _("Undo"), 3) )
+                            parent=self.dad.window,
+                            flags=gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+                            buttons=(_("Close"), 0,
+                                     _("Find"), 4,
+                                     _("Find"), 1,
+                                     _("Replace"), 2,
+                                     _("Undo"), 3))
         dialog.set_position(gtk.WIN_POS_CENTER_ON_PARENT)
         try:
             button = dialog.get_widget_for_response(0)
@@ -63,13 +71,18 @@ class FindReplace:
             button.set_image(gtk.image_new_from_stock("find_replace", gtk.ICON_SIZE_BUTTON))
             button = dialog.get_widget_for_response(3)
             button.set_image(gtk.image_new_from_stock(gtk.STOCK_UNDO, gtk.ICON_SIZE_BUTTON))
-        except: pass
+        except:
+            pass
+
         def on_key_press_iterated_find_dialog(widget, event):
             if gtk.gdk.keyval_name(event.keyval) == cons.STR_KEY_RETURN:
-                try: dialog.get_widget_for_response(1).clicked()
-                except: print cons.STR_PYGTK_222_REQUIRED
+                try:
+                    dialog.get_widget_for_response(1).clicked()
+                except:
+                    print cons.STR_PYGTK_222_REQUIRED
                 return True
             return False
+
         dialog.connect("key_press_event", on_key_press_iterated_find_dialog)
         self.iteratedfinddialog = dialog
 
@@ -106,15 +119,20 @@ class FindReplace:
             entry_predefined_text = self.dad.curr_buffer.get_text(iter_insert, iter_bound)
             if entry_predefined_text:
                 self.dad.search_replace_dict['find'] = entry_predefined_text
-            if self.replace_active: title = _("Replace in Current Node...")
-            else: title = _("Search in Current Node...")
+            if self.replace_active:
+                title = _("Replace in Current Node...")
+            else:
+                title = _("Search in Current Node...")
             pattern = self.dad.dialog_search(title, self.replace_active)
             if entry_predefined_text != "":
                 self.dad.curr_buffer.move_mark(self.dad.curr_buffer.get_insert(), iter_insert)
                 self.dad.curr_buffer.move_mark(self.dad.curr_buffer.get_selection_bound(), iter_bound)
-            if pattern != None: self.curr_find = ["in_selected_node", pattern]
-            else: return
-        else: pattern = self.curr_find[1]
+            if pattern != None:
+                self.curr_find = ["in_selected_node", pattern]
+            else:
+                return
+        else:
+            pattern = self.curr_find[1]
         forward = self.dad.search_replace_dict['fw']
         if self.from_find_back:
             forward = not forward
@@ -126,13 +144,16 @@ class FindReplace:
         if self.dad.user_active:
             self.dad.user_active = False
             user_active_restore = True
-        else: user_active_restore = False
+        else:
+            user_active_restore = False
         if all_matches:
             self.liststore.clear()
             self.all_matches_first_in_node = True
-            while self.parse_node_content_iter(self.dad.curr_tree_iter, self.dad.curr_buffer, pattern, forward, first_fromsel, all_matches, True):
+            while self.parse_node_content_iter(self.dad.curr_tree_iter, self.dad.curr_buffer, pattern, forward,
+                                               first_fromsel, all_matches, True):
                 self.matches_num += 1
-        elif self.parse_node_content_iter(self.dad.curr_tree_iter, self.dad.curr_buffer, pattern, forward, first_fromsel, all_matches, True):
+        elif self.parse_node_content_iter(self.dad.curr_tree_iter, self.dad.curr_buffer, pattern, forward,
+                                          first_fromsel, all_matches, True):
             self.matches_num = 1
         if self.matches_num == 0:
             support.dialog_info(_("The pattern '%s' was not found") % pattern, self.dad.window)
@@ -145,7 +166,7 @@ class FindReplace:
         if user_active_restore: self.dad.user_active = True
 
     def update_all_matches_progress(self):
-        self.dad.progressbar.set_fraction(float(self.processed_nodes)/self.dad.num_nodes)
+        self.dad.progressbar.set_fraction(float(self.processed_nodes) / self.dad.num_nodes)
         if self.matches_num != self.latest_matches:
             self.latest_matches = self.matches_num
             self.dad.progressbar.set_text(str(self.matches_num))
@@ -160,20 +181,28 @@ class FindReplace:
             if entry_predefined_text:
                 self.dad.search_replace_dict['find'] = entry_predefined_text
             if self.replace_active:
-                if father_tree_iter: title = _("Replace in Selected Node and Subnodes")
-                else: title = _("Replace in All Nodes")
+                if father_tree_iter:
+                    title = _("Replace in Selected Node and Subnodes")
+                else:
+                    title = _("Replace in All Nodes")
             else:
-                if father_tree_iter: title = _("Search in Selected Node and Subnodes")
-                else: title = _("Search in All Nodes")
+                if father_tree_iter:
+                    title = _("Search in Selected Node and Subnodes")
+                else:
+                    title = _("Search in All Nodes")
             pattern = self.dad.dialog_search(title, self.replace_active)
             if entry_predefined_text != "":
                 self.dad.curr_buffer.move_mark(self.dad.curr_buffer.get_insert(), iter_insert)
                 self.dad.curr_buffer.move_mark(self.dad.curr_buffer.get_selection_bound(), iter_bound)
             if pattern != None:
-                if not father_tree_iter: self.curr_find = ["in_all_nodes", pattern]
-                else: self.curr_find = ["in_sel_nod_n_sub", pattern]
-            else: return
-        else: pattern = self.curr_find[1]
+                if not father_tree_iter:
+                    self.curr_find = ["in_all_nodes", pattern]
+                else:
+                    self.curr_find = ["in_sel_nod_n_sub", pattern]
+            else:
+                return
+        else:
+            pattern = self.curr_find[1]
         starting_tree_iter = self.dad.curr_tree_iter.copy()
         current_cursor_pos = self.dad.curr_buffer.get_property(cons.STR_CURSOR_POSITION)
         forward = self.dad.search_replace_dict['fw']
@@ -183,12 +212,14 @@ class FindReplace:
         first_fromsel = self.dad.search_replace_dict['a_ff_fa'] == 1
         all_matches = self.dad.search_replace_dict['a_ff_fa'] == 0
         if first_fromsel or father_tree_iter:
-            self.first_useful_node = False # no one node content was parsed yet
+            self.first_useful_node = False  # no one node content was parsed yet
             node_iter = self.dad.curr_tree_iter.copy()
         else:
-            self.first_useful_node = True # all range will be parsed so no matter
-            if forward: node_iter = self.dad.treestore.get_iter_first()
-            else: node_iter = self.dad.get_tree_iter_last_sibling(None)
+            self.first_useful_node = True  # all range will be parsed so no matter
+            if forward:
+                node_iter = self.dad.treestore.get_iter_first()
+            else:
+                node_iter = self.dad.get_tree_iter_last_sibling(None)
         self.matches_num = 0
         if all_matches: self.liststore.clear()
         config.get_tree_expanded_collapsed_string(self.dad)
@@ -196,7 +227,8 @@ class FindReplace:
         if self.dad.user_active:
             self.dad.user_active = False
             user_active_restore = True
-        else: user_active_restore = False
+        else:
+            user_active_restore = False
         self.processed_nodes = 0
         self.latest_matches = 0
         self.dad.update_num_nodes(father_tree_iter)
@@ -214,9 +246,11 @@ class FindReplace:
             self.processed_nodes += 1
             if self.matches_num == 1 and not all_matches: break
             if father_tree_iter and not self.from_find_iterated: break
-            last_top_node_iter = node_iter.copy() # we need this if we start from a node that is not in top level
-            if forward: node_iter = self.dad.treestore.iter_next(node_iter)
-            else: node_iter = self.dad.get_tree_iter_prev_sibling(self.dad.treestore, node_iter)
+            last_top_node_iter = node_iter.copy()  # we need this if we start from a node that is not in top level
+            if forward:
+                node_iter = self.dad.treestore.iter_next(node_iter)
+            else:
+                node_iter = self.dad.get_tree_iter_prev_sibling(self.dad.treestore, node_iter)
             if not node_iter and father_tree_iter: break
             # code that, in case we start from a node that is not top level, climbs towards the top
             while not node_iter:
@@ -224,9 +258,12 @@ class FindReplace:
                 if node_iter:
                     last_top_node_iter = node_iter.copy()
                     # we do not check the parent on purpose, only the uncles in the proper direction
-                    if forward: node_iter = self.dad.treestore.iter_next(node_iter)
-                    else: node_iter = self.dad.get_tree_iter_prev_sibling(self.dad.treestore, node_iter)
-                else: break
+                    if forward:
+                        node_iter = self.dad.treestore.iter_next(node_iter)
+                    else:
+                        node_iter = self.dad.get_tree_iter_prev_sibling(self.dad.treestore, node_iter)
+                else:
+                    break
             if self.dad.progress_stop: break
             if all_matches:
                 self.update_all_matches_progress()
@@ -252,7 +289,8 @@ class FindReplace:
                 if self.dad.search_replace_dict['idialog']:
                     self.iterated_find_dialog()
         if all_matches:
-            assert self.processed_nodes == self.dad.num_nodes or self.dad.progress_stop, "%s != %s" % (self.processed_nodes, self.dad.num_nodes)
+            assert self.processed_nodes == self.dad.num_nodes or self.dad.progress_stop, "%s != %s" % (
+                self.processed_nodes, self.dad.num_nodes)
             self.dad.progresstop.hide()
             self.dad.progressbar.hide()
             self.dad.progress_stop = False
@@ -260,60 +298,98 @@ class FindReplace:
     def find_a_node(self):
         """Search for a pattern between all the Node's Names"""
         if not self.from_find_iterated:
-            if self.replace_active: title = _("Replace in Node Names...")
-            else: title = _("Search For a Node Name...")
+            if self.replace_active:
+                title = _("Replace in Node Names...")
+            else:
+                title = _("Search For a Node Name...")
+
             pattern_clean = self.dad.dialog_search(title, self.replace_active)
-            if pattern_clean != None: self.curr_find = ["a_node", pattern_clean]
-            else: return
-        else: pattern_clean = self.curr_find[1]
-        if not self.dad.search_replace_dict['reg_exp']: # NOT REGULAR EXPRESSION
-            pattern_ready = re.escape(pattern_clean) # backslashes all non alphanum chars => to not spoil re
-            if self.dad.search_replace_dict['whole_word']: # WHOLE WORD
+
+            if pattern_clean != None:
+                self.curr_find = ["a_node", pattern_clean]
+            else:
+                return
+        else:
+            pattern_clean = self.curr_find[1]
+
+        if not self.dad.search_replace_dict['reg_exp']:  # NOT REGULAR EXPRESSION
+            pattern_ready = re.escape(pattern_clean)  # backslashes all non alphanum chars => to not spoil re
+            if self.dad.search_replace_dict['whole_word']:  # WHOLE WORD
                 pattern_ready = r'\b' + pattern_ready + r'\b'
-            elif self.dad.search_replace_dict['start_word']: # START WORD
+            elif self.dad.search_replace_dict['start_word']:  # START WORD
                 pattern_ready = r'\b' + pattern_ready
-        else: pattern_ready = pattern_clean
-        if self.dad.search_replace_dict['match_case']: # CASE SENSITIVE
-            pattern = re.compile(pattern_ready, re.UNICODE|re.MULTILINE)
-        else: pattern = re.compile(pattern_ready, re.IGNORECASE|re.UNICODE|re.MULTILINE)
+        else:
+            pattern_ready = pattern_clean
+
+        if self.dad.search_replace_dict['match_case']:  # CASE SENSITIVE
+            pattern = re.compile(pattern_ready, re.UNICODE | re.MULTILINE)
+        else:
+            pattern = re.compile(pattern_ready, re.IGNORECASE | re.UNICODE | re.MULTILINE)
         forward = self.dad.search_replace_dict['fw']
+
         if self.from_find_back:
             forward = not forward
             self.from_find_back = False
+
         first_fromsel = self.dad.search_replace_dict['a_ff_fa'] == 1
         all_matches = self.dad.search_replace_dict['a_ff_fa'] == 0
+
         if first_fromsel:
-            if forward: node_iter = self.dad.treestore.iter_next(self.dad.curr_tree_iter)
-            else: node_iter = self.dad.get_tree_iter_prev_sibling(self.dad.treestore, self.dad.curr_tree_iter)
+            if forward:
+                node_iter = self.dad.treestore.iter_next(self.dad.curr_tree_iter)
+            else:
+                node_iter = self.dad.get_tree_iter_prev_sibling(self.dad.treestore, self.dad.curr_tree_iter)
             top_node_iter = self.dad.curr_tree_iter.copy()
+
             while not node_iter:
                 node_iter = top_node_iter.copy()
-                if forward: node_iter = self.dad.treestore.iter_next(node_iter)
-                else: node_iter = self.dad.get_tree_iter_prev_sibling(self.dad.treestore, node_iter)
+                if forward:
+                    node_iter = self.dad.treestore.iter_next(node_iter)
+                else:
+                    node_iter = self.dad.get_tree_iter_prev_sibling(self.dad.treestore, node_iter)
                 top_node_iter = self.dad.treestore.iter_parent(top_node_iter)
                 if not top_node_iter: break
         else:
-            if forward: node_iter = self.dad.treestore.get_iter_first()
-            else: node_iter = self.dad.get_tree_iter_last_sibling(None)
+            if forward:
+                node_iter = self.dad.treestore.get_iter_first()
+            else:
+                node_iter = self.dad.get_tree_iter_last_sibling(None)
         self.matches_num = 0
         if all_matches: self.liststore.clear()
+
         # searching start
         while node_iter != None:
-            if self.parse_node_name(node_iter, pattern, forward, all_matches):
-                self.matches_num += 1
-                if not all_matches: break
-            last_top_node_iter = node_iter.copy() # we need this if we start from a node that is not in top level
-            if forward: node_iter = self.dad.treestore.iter_next(node_iter)
-            else: node_iter = self.dad.get_tree_iter_prev_sibling(self.dad.treestore, node_iter)
+
+            if self.replace_active:
+                if self.parse_node_name(node_iter, pattern, forward, all_matches):
+                    self.matches_num += 1
+
+                    if not all_matches:
+                        break
+            else:
+                if self.parse_node_name_search(node_iter, pattern, forward, all_matches):
+                    self.matches_num += 1
+
+                    if not all_matches:
+                        break
+
+            last_top_node_iter = node_iter.copy()  # we need this if we start from a node that is not in top level
+            if forward:
+                node_iter = self.dad.treestore.iter_next(node_iter)
+            else:
+                node_iter = self.dad.get_tree_iter_prev_sibling(self.dad.treestore, node_iter)
             # code that, in case we start from a node that is not top level, climbs towards the top
             while node_iter == None:
                 node_iter = self.dad.treestore.iter_parent(last_top_node_iter)
                 if node_iter != None:
                     last_top_node_iter = node_iter.copy()
                     # we do not check the parent on purpose, only the uncles in the proper direction
-                    if forward: node_iter = self.dad.treestore.iter_next(node_iter)
-                    else: node_iter = self.dad.get_tree_iter_prev_sibling(self.dad.treestore, node_iter)
-                else: break
+                    if forward:
+                        node_iter = self.dad.treestore.iter_next(node_iter)
+                    else:
+                        node_iter = self.dad.get_tree_iter_prev_sibling(self.dad.treestore, node_iter)
+                else:
+                    break
         self.dad.objects_buffer_refresh()
         if self.matches_num == 0:
             support.dialog_info(_("The pattern '%s' was not found") % pattern_clean, self.dad.window)
@@ -328,60 +404,73 @@ class FindReplace:
     def find_pattern(self, tree_iter, text_buffer, pattern, start_iter, forward, all_matches):
         """Returns (start_iter, end_iter) or (None, None)"""
         text = unicode(text_buffer.get_text(*text_buffer.get_bounds()), cons.STR_UTF8, cons.STR_IGNORE)
-        if not self.dad.search_replace_dict['reg_exp']: # NOT REGULAR EXPRESSION
-            pattern = re.escape(pattern) # backslashes all non alphanum chars => to not spoil re
-            if self.dad.search_replace_dict['whole_word']: # WHOLE WORD
+        if not self.dad.search_replace_dict['reg_exp']:  # NOT REGULAR EXPRESSION
+            pattern = re.escape(pattern)  # backslashes all non alphanum chars => to not spoil re
+            if self.dad.search_replace_dict['whole_word']:  # WHOLE WORD
                 pattern = r'\b' + pattern + r'\b'
-            elif self.dad.search_replace_dict['start_word']: # START WORD
+            elif self.dad.search_replace_dict['start_word']:  # START WORD
                 pattern = r'\b' + pattern
-        if self.dad.search_replace_dict['match_case']: # CASE SENSITIVE
-            pattern = re.compile(pattern, re.UNICODE|re.MULTILINE)
-        else: pattern = re.compile(pattern, re.IGNORECASE|re.UNICODE|re.MULTILINE)
+        if self.dad.search_replace_dict['match_case']:  # CASE SENSITIVE
+            pattern = re.compile(pattern, re.UNICODE | re.MULTILINE)
+        else:
+            pattern = re.compile(pattern, re.IGNORECASE | re.UNICODE | re.MULTILINE)
         start_offset = start_iter.get_offset()
-        #start_offset -= self.get_num_objs_before_offset(text_buffer, start_offset)
+        # start_offset -= self.get_num_objs_before_offset(text_buffer, start_offset)
         if forward:
             match = pattern.search(text, start_offset)
         else:
             match = None
             for temp_match in pattern.finditer(text, 0, start_offset): match = temp_match
-        if self.replace_active: obj_match_offsets = (None, None)
-        else: obj_match_offsets = self.check_pattern_in_object_between(text_buffer,
-            pattern,
-            start_iter.get_offset(),
-            match.start() if match else -1,
-            forward)
-        if obj_match_offsets[0] != None: match_offsets = (obj_match_offsets[0], obj_match_offsets[1])
-        else: match_offsets = (match.start(), match.end()) if match else (None, None)
+        if self.replace_active:
+            obj_match_offsets = (None, None)
+        else:
+            obj_match_offsets = self.check_pattern_in_object_between(text_buffer,
+                                                                     pattern,
+                                                                     start_iter.get_offset(),
+                                                                     match.start() if match else -1,
+                                                                     forward)
+        if obj_match_offsets[0] != None:
+            match_offsets = (obj_match_offsets[0], obj_match_offsets[1])
+        else:
+            match_offsets = (match.start(), match.end()) if match else (None, None)
         if match_offsets[0] == None: return False
         # match found!
-        if obj_match_offsets[0] == None: num_objs = self.get_num_objs_before_offset(text_buffer, match_offsets[0])
-        else: num_objs = 0
+        if obj_match_offsets[0] == None:
+            num_objs = self.get_num_objs_before_offset(text_buffer, match_offsets[0])
+        else:
+            num_objs = 0
         final_start_offset = match_offsets[0] + num_objs
         final_delta_offset = match_offsets[1] - match_offsets[0]
-        #print "IN", final_start_offset, final_delta_offset, self.dad.treestore[tree_iter][1]
-        #for count in range(final_delta_offset):
+        # print "IN", final_start_offset, final_delta_offset, self.dad.treestore[tree_iter][1]
+        # for count in range(final_delta_offset):
         #    print count, text_buffer.get_iter_at_offset(final_start_offset+count).get_char()
-        if not self.dad.curr_tree_iter\
-        or self.dad.treestore[tree_iter][3] != self.dad.treestore[self.dad.curr_tree_iter][3]:
+        if not self.dad.curr_tree_iter \
+                or self.dad.treestore[tree_iter][3] != self.dad.treestore[self.dad.curr_tree_iter][3]:
             self.dad.treeview_safe_set_cursor(tree_iter)
         self.dad.set_selection_at_offset_n_delta(final_start_offset, final_delta_offset)
-        #print "OUT"
+        # print "OUT"
         mark_insert = text_buffer.get_insert()
         iter_insert = text_buffer.get_iter_at_mark(mark_insert)
         if all_matches:
-            if self.newline_trick: newline_trick_offset = 1
-            else: newline_trick_offset = 0
+            if self.newline_trick:
+                newline_trick_offset = 1
+            else:
+                newline_trick_offset = 0
             node_id = self.dad.treestore[tree_iter][3]
             start_offset = match_offsets[0] + num_objs - newline_trick_offset
             end_offset = match_offsets[1] + num_objs - newline_trick_offset
             node_name = self.dad.treestore[tree_iter][1]
-            node_hier_name = support.get_node_hierarchical_name(self.dad, tree_iter, separator=" << ", for_filename=False, root_to_leaf=False)
-            line_content = self.get_line_content(text_buffer, iter_insert) if obj_match_offsets[0] == None else obj_match_offsets[2]
+            node_hier_name = support.get_node_hierarchical_name(self.dad, tree_iter, separator=" << ",
+                                                                for_filename=False, root_to_leaf=False)
+            line_content = self.get_line_content(text_buffer, iter_insert) if obj_match_offsets[0] == None else \
+                obj_match_offsets[2]
             line_num = text_buffer.get_iter_at_offset(start_offset).get_line()
             if not self.newline_trick: line_num += 1
-            self.liststore.append([node_id, start_offset, end_offset, node_name, line_content, line_num, cgi.escape(node_hier_name)])
-            #print line_num, self.matches_num
-        else: self.dad.sourceview.scroll_to_mark(mark_insert, cons.SCROLL_MARGIN)
+            self.liststore.append(
+                [node_id, start_offset, end_offset, node_name, line_content, line_num, cgi.escape(node_hier_name)])
+            # print line_num, self.matches_num
+        else:
+            self.dad.sourceview.scroll_to_mark(mark_insert, cons.SCROLL_MARGIN)
         if self.replace_active:
             if self.dad.is_curr_node_read_only(): return False
             replacer_text = self.dad.search_replace_dict['replace']
@@ -421,12 +510,12 @@ class FindReplace:
             for element in obj_vec:
                 patt_in_obj = self.check_pattern_in_object(pattern, element)
                 if patt_in_obj[0]:
-                    return (element[1][0], element[1][0]+1, patt_in_obj[1])
+                    return (element[1][0], element[1][0] + 1, patt_in_obj[1])
         else:
             for element in reversed(obj_vec):
                 patt_in_obj = self.check_pattern_in_object(pattern, element)
                 if patt_in_obj[0]:
-                    return (element[1][0], element[1][0]+1, patt_in_obj[1])
+                    return (element[1][0], element[1][0] + 1, patt_in_obj[1])
         return (None, None)
 
     def get_num_objs_before_offset(self, text_buffer, max_offset):
@@ -468,14 +557,16 @@ class FindReplace:
                 start_iter = text_buffer.get_iter_at_offset(min(offsets))
             else:
                 start_iter = text_buffer.get_iter_at_offset(max(offsets))
-        if self.latest_node_offset\
-        and self.latest_node_offset["n"] == node_id\
-        and self.latest_node_offset["o"] == start_iter.get_offset():
-            if forward: start_iter.forward_char()
-            else: start_iter.backward_char()
+        if self.latest_node_offset \
+                and self.latest_node_offset["n"] == node_id \
+                and self.latest_node_offset["o"] == start_iter.get_offset():
+            if forward:
+                start_iter.forward_char()
+            else:
+                start_iter.backward_char()
         self.latest_node_offset["n"] = node_id
         self.latest_node_offset["o"] = start_iter.get_offset()
-        #print self.latest_node_offset["n"], offsets, self.latest_node_offset["o"]
+        # print self.latest_node_offset["n"], offsets, self.latest_node_offset["o"]
         return start_iter
 
     def parse_node_content_iter(self, tree_iter, text_buffer, pattern, forward, first_fromsel, all_matches, first_node):
@@ -483,19 +574,23 @@ class FindReplace:
         buff_start_iter = text_buffer.get_start_iter()
         if buff_start_iter.get_char() != cons.CHAR_NEWLINE:
             self.newline_trick = True
-            if not text_buffer.get_modified(): restore_modified = True
-            else: restore_modified = False
+            if not text_buffer.get_modified():
+                restore_modified = True
+            else:
+                restore_modified = False
             text_buffer.insert(buff_start_iter, cons.CHAR_NEWLINE)
         else:
             self.newline_trick = False
             restore_modified = False
-        if (first_fromsel and first_node)\
-        or (all_matches and not self.all_matches_first_in_node):
+        if (first_fromsel and first_node) \
+                or (all_matches and not self.all_matches_first_in_node):
             node_id = self.dad.get_node_id_from_tree_iter(tree_iter)
             start_iter = self.get_inner_start_iter(text_buffer, forward, node_id)
         else:
-            if forward: start_iter = text_buffer.get_start_iter()
-            else: start_iter = text_buffer.get_end_iter()
+            if forward:
+                start_iter = text_buffer.get_start_iter()
+            else:
+                start_iter = text_buffer.get_end_iter()
             if all_matches: self.all_matches_first_in_node = False
         pattern_found = self.find_pattern(tree_iter, text_buffer, pattern, start_iter, forward, all_matches)
         if self.newline_trick:
@@ -512,16 +607,18 @@ class FindReplace:
         text_buffer = self.dad.get_textbuffer_from_tree_iter(node_iter)
         if not self.first_useful_node:
             # first_fromsel plus first_node not already parsed
-            if not self.dad.curr_tree_iter\
-            or self.dad.treestore[node_iter][3] == self.dad.treestore[self.dad.curr_tree_iter][3]:
-                self.first_useful_node = True # a first_node was parsed
-                if self.parse_node_content_iter(node_iter, text_buffer, pattern, forward, first_fromsel, all_matches, True):
-                    return True # first_node node, first_fromsel
+            if not self.dad.curr_tree_iter \
+                    or self.dad.treestore[node_iter][3] == self.dad.treestore[self.dad.curr_tree_iter][3]:
+                self.first_useful_node = True  # a first_node was parsed
+                if self.parse_node_content_iter(node_iter, text_buffer, pattern, forward, first_fromsel, all_matches,
+                                                True):
+                    return True  # first_node node, first_fromsel
         else:
             # not first_fromsel or first_fromsel with first_node already parsed
-            if self.parse_node_content_iter(node_iter, text_buffer, pattern, forward, first_fromsel, all_matches, False):
-                return True # not first_node node
-        node_iter = self.dad.treestore.iter_children(node_iter) # check for children
+            if self.parse_node_content_iter(node_iter, text_buffer, pattern, forward, first_fromsel, all_matches,
+                                            False):
+                return True  # not first_node node
+        node_iter = self.dad.treestore.iter_children(node_iter)  # check for children
         if node_iter and not forward: node_iter = self.dad.get_tree_iter_last_sibling(node_iter)
         while node_iter and not self.dad.progress_stop:
             self.all_matches_first_in_node = True
@@ -529,8 +626,10 @@ class FindReplace:
                 self.matches_num += 1
                 if not all_matches or self.dad.progress_stop: break
             if self.matches_num == 1 and not all_matches: break
-            if forward: node_iter = self.dad.treestore.iter_next(node_iter)
-            else: node_iter = self.dad.get_tree_iter_prev_sibling(self.dad.treestore, node_iter)
+            if forward:
+                node_iter = self.dad.treestore.iter_next(node_iter)
+            else:
+                node_iter = self.dad.get_tree_iter_prev_sibling(self.dad.treestore, node_iter)
             self.processed_nodes += 1
             if all_matches:
                 self.update_all_matches_progress()
@@ -540,33 +639,97 @@ class FindReplace:
         """Recursive function that searchs for the given pattern"""
         text_name = self.dad.treestore[node_iter][1].decode(cons.STR_UTF8)
         match = pattern.search(text_name)
+
         if not match:
             text_tags = self.dad.treestore[node_iter][6].decode(cons.STR_UTF8)
             match = pattern.search(text_tags)
+
         if match:
             if all_matches:
                 node_id = self.dad.treestore[node_iter][3]
                 node_name = self.dad.treestore[node_iter][1]
-                node_hier_name = support.get_node_hierarchical_name(self.dad, node_iter, separator=" << ", for_filename=False, root_to_leaf=False)
+                node_hier_name = support.get_node_hierarchical_name(self.dad, node_iter, separator=" << ",
+                                                                    for_filename=False, root_to_leaf=False)
                 line_content = self.get_first_line_content(self.dad.get_textbuffer_from_tree_iter(node_iter))
                 self.liststore.append([node_id, 0, 0, node_name, line_content, 1, cgi.escape(node_hier_name)])
-            if self.replace_active and not self.dad.treestore[node_iter][7]:
-                replacer_text = self.dad.search_replace_dict['replace']
-                text_name = text_name.replace(self.curr_find[1], replacer_text)
-                self.dad.treestore[node_iter][1] = text_name
-                self.dad.ctdb_handler.pending_edit_db_node_prop(self.dad.treestore[node_iter][3])
-            if not all_matches:
+
+                if self.replace_active and not self.dad.treestore[node_iter][7]:
+                    replacer_text = self.dad.search_replace_dict['replace']
+                    text_name = text_name.replace(self.curr_find[1], replacer_text)
+                    self.dad.treestore[node_iter][1] = text_name
+                    self.dad.ctdb_handler.pending_edit_db_node_prop(self.dad.treestore[node_iter][3])
+
+                self.matches_num += 1
+            else:
                 self.dad.treeview_safe_set_cursor(node_iter)
                 self.dad.sourceview.grab_focus()
                 return True
-            else: self.matches_num += 1
-        node_iter = self.dad.treestore.iter_children(node_iter) # check for children
-        if node_iter != None and not forward: node_iter = self.dad.get_tree_iter_last_sibling(node_iter)
+
+        node_iter = self.dad.treestore.iter_children(node_iter)  # check for children
+        if node_iter != None and not forward:
+            node_iter = self.dad.get_tree_iter_last_sibling(node_iter)
+
         while node_iter != None:
-            if self.parse_node_name(node_iter, pattern, forward, all_matches)\
-            and not all_matches: return True
-            if forward: node_iter = self.dad.treestore.iter_next(node_iter)
-            else: node_iter = self.dad.get_tree_iter_prev_sibling(self.dad.treestore, node_iter)
+            if self.parse_node_name(node_iter, pattern, forward, all_matches) and not all_matches:
+                return True
+            if forward:
+                node_iter = self.dad.treestore.iter_next(node_iter)
+            else:
+                node_iter = self.dad.get_tree_iter_prev_sibling(self.dad.treestore, node_iter)
+
+        return False
+
+    def parse_node_name_search(self, node_iter, pattern, forward, all_matches):
+        """
+        Recursive function that search for the given pattern
+
+        :param node_iter:
+        :param pattern:
+        :param forward:
+        :param all_matches:
+
+        :return:
+         - True: if node name match pattern
+         - False: if node name don't match pattern
+        """
+
+        text_name = self.dad.treestore[node_iter][1].decode(cons.STR_UTF8)
+        match = pattern.search(text_name)
+
+        if not match:
+            match = fuzz.token_sort_ratio(pattern.pattern.lower(), text_name.lower()) > 70
+
+        if not match:
+            text_tags = self.dad.treestore[node_iter][6].decode(cons.STR_UTF8)
+            match = pattern.search(text_tags)
+
+        if match:
+            if all_matches:
+                node_id = self.dad.treestore[node_iter][3]
+                node_name = self.dad.treestore[node_iter][1]
+                node_hier_name = support.get_node_hierarchical_name(self.dad, node_iter, separator=" << ",
+                                                                    for_filename=False, root_to_leaf=False)
+                line_content = self.get_first_line_content(self.dad.get_textbuffer_from_tree_iter(node_iter))
+                self.liststore.append([node_id, 0, 0, node_name, line_content, 1, cgi.escape(node_hier_name)])
+
+                self.matches_num += 1
+            else:
+                self.dad.treeview_safe_set_cursor(node_iter)
+                self.dad.sourceview.grab_focus()
+                return True
+
+        node_iter = self.dad.treestore.iter_children(node_iter)  # check for children
+        if node_iter != None and not forward:
+            node_iter = self.dad.get_tree_iter_last_sibling(node_iter)
+
+        while node_iter != None:
+            if self.parse_node_name_search(node_iter, pattern, forward, all_matches) and not all_matches:
+                return True
+            if forward:
+                node_iter = self.dad.treestore.iter_next(node_iter)
+            else:
+                node_iter = self.dad.get_tree_iter_prev_sibling(self.dad.treestore, node_iter)
+
         return False
 
     def find_back(self):
@@ -596,11 +759,16 @@ class FindReplace:
     def find_again(self):
         """Continue the previous search (a_node/in_selected_node/in_all_nodes)"""
         self.from_find_iterated = True
-        if self.curr_find[0] == None: support.dialog_warning(_("No Previous Search Was Performed During This Session"), self.dad.window)
-        elif self.curr_find[0] == "in_selected_node": self.find_in_selected_node()
-        elif self.curr_find[0] == "in_all_nodes": self.find_in_all_nodes(None)
-        elif self.curr_find[0] == "in_sel_nod_n_sub": self.find_in_all_nodes(self.dad.curr_tree_iter)
-        elif self.curr_find[0] == "a_node": self.find_a_node()
+        if self.curr_find[0] == None:
+            support.dialog_warning(_("No Previous Search Was Performed During This Session"), self.dad.window)
+        elif self.curr_find[0] == "in_selected_node":
+            self.find_in_selected_node()
+        elif self.curr_find[0] == "in_all_nodes":
+            self.find_in_all_nodes(None)
+        elif self.curr_find[0] == "in_sel_nod_n_sub":
+            self.find_in_all_nodes(self.dad.curr_tree_iter)
+        elif self.curr_find[0] == "a_node":
+            self.find_a_node()
         self.from_find_iterated = False
 
     def replace_again(self):
@@ -618,7 +786,8 @@ class FindReplace:
         if not line_start.backward_char(): return ""
         while line_start.get_char() != cons.CHAR_NEWLINE:
             if not line_start.backward_char(): break
-        else: line_start.forward_char()
+        else:
+            line_start.forward_char()
         while line_end.get_char() != cons.CHAR_NEWLINE:
             if not line_end.forward_char(): break
         return text_buffer.get_text(line_start, line_end)
@@ -636,14 +805,18 @@ class FindReplace:
     def allmatchesdialog_init(self):
         """Create the All Matches Dialog"""
         self.allmatchesdialog = gtk.Dialog(parent=self.dad.window,
-            flags=gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT,
-            buttons=(_("Hide (Restore with '%s')") % menus.get_menu_item_kb_shortcut(self.dad, "toggle_show_allmatches_dlg"), gtk.RESPONSE_CLOSE))
+                                           flags=gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+                                           buttons=(
+                                               _("Hide (Restore with '%s')") % menus.get_menu_item_kb_shortcut(self.dad,
+                                                                                                               "toggle_show_allmatches_dlg"),
+                                               gtk.RESPONSE_CLOSE))
         self.allmatchesdialog.set_default_size(700, 350)
         self.allmatchesdialog.set_position(gtk.WIN_POS_CENTER_ON_PARENT)
         try:
             button = self.allmatchesdialog.get_widget_for_response(gtk.RESPONSE_CLOSE)
             button.set_image(gtk.image_new_from_stock(gtk.STOCK_CLOSE, gtk.ICON_SIZE_BUTTON))
-        except: pass
+        except:
+            pass
         # ROW: 0-node_id, 1-start_offset, 2-end_offset, 3-node_name, 4-line_content, 5-line_num 6-node_hier_name
         self.liststore = gtk.ListStore(long, long, long, str, str, int, str)
         self.treeview = gtk.TreeView(self.liststore)
@@ -668,11 +841,13 @@ class FindReplace:
         content_area.show_all()
 
     def on_key_press_allmatches_dialog(self, widget, event):
-        if event.state & gtk.gdk.CONTROL_MASK\
-        and event.state & gtk.gdk.SHIFT_MASK\
-        and event.hardware_keycode == 38: # 'A' case and keyboard layout independent
-            try: self.allmatchesdialog.get_widget_for_response(gtk.RESPONSE_CLOSE).clicked()
-            except: print cons.STR_PYGTK_222_REQUIRED
+        if event.state & gtk.gdk.CONTROL_MASK \
+                and event.state & gtk.gdk.SHIFT_MASK \
+                and event.hardware_keycode == 38:  # 'A' case and keyboard layout independent
+            try:
+                self.allmatchesdialog.get_widget_for_response(gtk.RESPONSE_CLOSE).clicked()
+            except:
+                print cons.STR_PYGTK_222_REQUIRED
             return True
         return False
 
@@ -683,7 +858,9 @@ class FindReplace:
         if not list_iter: return
         tree_iter = self.dad.get_tree_iter_from_node_id(model[list_iter][0])
         if not tree_iter:
-            support.dialog_error(_("The Link Refers to a Node that Does Not Exist Anymore (Id = %s)") % model[list_iter][0], self.dad.window)
+            support.dialog_error(
+                _("The Link Refers to a Node that Does Not Exist Anymore (Id = %s)") % model[list_iter][0],
+                self.dad.window)
             self.liststore.remove(list_iter)
             return
         self.dad.treeview_safe_set_cursor(tree_iter)
