@@ -1,7 +1,11 @@
 #!/usr/bin/env python2
 # -*- coding: UTF-8 -*-
 
-import os, sys, shutil, glob, __builtin__
+import __builtin__
+import glob
+import os
+import shutil
+import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 MODULES_DIR = os.path.join(SCRIPT_DIR, "modules")
@@ -12,10 +16,10 @@ import cons
 
 BLACKLIST = [".git", ".gitignore"]
 
-DEST_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), "cherrytree-"+cons.VERSION)
+DEST_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), "cherrytree-" + cons.VERSION)
 if len(sys.argv) > 1:
     DEST_DIR += "+r" + sys.argv[1]
-#print DEST_DIR
+# print DEST_DIR
 
 if not os.path.isdir(DEST_DIR):
     os.mkdir(DEST_DIR)

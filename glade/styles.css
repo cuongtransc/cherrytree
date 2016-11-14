@@ -1,17 +1,16 @@
-/* Met Office external website                                                                            
+/* Met Office external website
 
 Colours:
 - black/dark grey: #202A2C
-- dark grey: #666666      
+- dark grey: #666666
 - grey: #DDDDDD (thin lines)
 - light grey: #EEEEEE (background colour)
-- darkish green: #BCDB0C                 
-- green: #CCFF33                         
-- darkish blue: #4BA8BA                  
-- blue: #00ADD0                          
+- darkish green: #BCDB0C
+- green: #CCFF33
+- darkish blue: #4BA8BA
+- blue: #00ADD0
 
 */
-
 /*******************************************************************************
  * GENERAL
  ******************************************************************************/
@@ -21,7 +20,7 @@ Colours:
 body {
     font-size: 13px;
     font-family: "Open Sans", sans-serif !important;
-    padding: 20x; 
+    padding: 20x;
 }
 
 div.main {
@@ -86,7 +85,9 @@ div.tree ol ol ol ol, div.tree ol ol ol ol ol, div.tree ol ol ol ol ol ol {
     list-style-type: disc;
 }
 
-div.tree a.show, div.tree a.hide { display: none; }
+div.tree a.show, div.tree a.hide {
+    display: none;
+}
 
 /*******************************************************************************
  * NODE PAGES
@@ -166,7 +167,6 @@ div.main pre {
     overflow: auto !important;
     width: 75%;
 }
-
 
 /* IMAGES */
 

@@ -28,13 +28,14 @@ interface it can use Gedit’s translation files.
 """
 
 import gtk
+
 try:
     import enchant
+
     HAS_PYENCHANT = True
 except:
     HAS_PYENCHANT = False
 import re
-import sys
 
 from pgsc_locales import code_to_name as _code_to_name
 from pgsc_locales import LanguageNotFound, CountryNotFound
@@ -49,23 +50,28 @@ class NoDictionariesFound(Exception):
     spellchecking could not work in any way.
     """
 
+
 class NoGtkBindingFound(Exception):
     """
     Could not find any loaded Gtk binding.
     """
 
+
 # select base list class
 try:
     from collections import UserList
+
     _list = UserList
 except ImportError:
     _list = list
+
 
 def code_to_name(code, separator='_'):
     try:
         return _code_to_name(code, separator)
     except (LanguageNotFound, CountryNotFound):
         return '{} ({})'.format(_('Unknown'), code)
+
 
 class SpellChecker(object):
     """
@@ -94,11 +100,11 @@ class SpellChecker(object):
     FILTER_LINE = 'line'
     FILTER_TEXT = 'text'
 
-    DEFAULT_FILTERS = {FILTER_WORD : [r'[0-9.,]+'],
-                       FILTER_LINE : [(r'(https?|ftp|file):((//)|(\\\\))+[\w\d:'
-                                       r'#@%/;$()~_?+-=\\.&]+'),
-                                      r'[\w\d]+@[\w\d.]+'],
-                       FILTER_TEXT : []}
+    DEFAULT_FILTERS = {FILTER_WORD: [r'[0-9.,]+'],
+                       FILTER_LINE: [(r'(https?|ftp|file):((//)|(\\\\))+[\w\d:'
+                                      r'#@%/;$()~_?+-=\\.&]+'),
+                                     r'[\w\d]+@[\w\d.]+'],
+                       FILTER_TEXT: []}
 
     class _LanguageList(_list):
         def __init__(self, *args, **kwargs):
@@ -147,7 +153,7 @@ class SpellChecker(object):
         self._cherrytree_instance = cherrytree_instance
         self.collapse = collapse
         self._view.connect('populate-popup',
-                           lambda entry, menu:self._extend_menu(menu))
+                           lambda entry, menu: self._extend_menu(menu))
         self._view.connect('popup-menu', self._click_move_popup)
         self._view.connect('button-press-event', self._click_move_button)
         self._prefix = prefix
@@ -168,13 +174,13 @@ class SpellChecker(object):
         self._dictionary = self._broker.request_dict(self._language)
         self._deferred_check = False
         self._filters = dict(SpellChecker.DEFAULT_FILTERS)
-        self._regexes = {SpellChecker.FILTER_WORD : re.compile('|'.join(
-                             self._filters[SpellChecker.FILTER_WORD])),
-                         SpellChecker.FILTER_LINE : re.compile('|'.join(
-                             self._filters[SpellChecker.FILTER_LINE])),
-                         SpellChecker.FILTER_TEXT : re.compile('|'.join(
-                             self._filters[SpellChecker.FILTER_TEXT]),
-                                                               re.MULTILINE)}
+        self._regexes = {SpellChecker.FILTER_WORD: re.compile('|'.join(
+            self._filters[SpellChecker.FILTER_WORD])),
+            SpellChecker.FILTER_LINE: re.compile('|'.join(
+                self._filters[SpellChecker.FILTER_LINE])),
+            SpellChecker.FILTER_TEXT: re.compile('|'.join(
+                self._filters[SpellChecker.FILTER_TEXT]),
+                re.MULTILINE)}
         self._enabled = True
         if on_rt_node: self.buffer_initialize()
 
@@ -212,29 +218,32 @@ class SpellChecker(object):
         have associated a new GtkTextBuffer with the GtkTextView call this
         method.
         """
-        #self._misspelled = gtk.TextTag('{}-misspelled'.format(self._prefix))
-        #self._misspelled.set_property('underline', 4)
+        # self._misspelled = gtk.TextTag('{}-misspelled'.format(self._prefix))
+        # self._misspelled.set_property('underline', 4)
         self._buffer = self._view.get_buffer()
         self._buffer.connect('insert-text', self._before_text_insert)
         self._buffer.connect_after('insert-text', self._after_text_insert)
         self._buffer.connect_after('delete-range', self._range_delete)
         self._buffer.connect_after('mark-set', self._mark_set)
         start = self._buffer.get_bounds()[0]
-        self._marks = {'insert-start' : SpellChecker._Mark(self._buffer,
-                           '{}-insert-start'.format(self._prefix), start),
-                       'insert-end' : SpellChecker._Mark(self._buffer,
-                           '{}-insert-end'.format(self._prefix), start),
-                       'click' : SpellChecker._Mark(self._buffer,
-                           '{}-click'.format(self._prefix), start)}
+        self._marks = {'insert-start': SpellChecker._Mark(self._buffer,
+                                                          '{}-insert-start'.format(self._prefix), start),
+                       'insert-end': SpellChecker._Mark(self._buffer,
+                                                        '{}-insert-end'.format(self._prefix), start),
+                       'click': SpellChecker._Mark(self._buffer,
+                                                   '{}-click'.format(self._prefix), start)}
         self._table = self._buffer.get_tag_table()
         if not self._table.lookup(self._misspelled.get_property("name")): self._table.add(self._misspelled)
         self.ignored_tags = []
+
         def tag_added(tag, *args):
             if hasattr(tag, 'spell_check') and not getattr(tag, 'spell_check'):
                 self.ignored_tags.append(tag)
+
         def tag_removed(tag, *args):
             if tag in self.ignored_tags:
                 self.ignored_tags.remove(tag)
+
         self._table.connect('tag-added', tag_added)
         self._table.connect('tag-removed', tag_removed)
         self._table.foreach(tag_added, None)
@@ -369,7 +378,7 @@ class SpellChecker(object):
             return
         if end.inside_word(): end.forward_word_end()
         if not start.starts_word() and (start.inside_word() or
-                                        start.ends_word()):
+                                            start.ends_word()):
             start.backward_word_start()
         self._buffer.remove_tag(self._misspelled, start, end)
         cursor = self._buffer.get_iter_at_mark(self._buffer.get_insert())
@@ -404,6 +413,7 @@ class SpellChecker(object):
         def _set_language(item, code):
             self.language = code
             self._cherrytree_instance.spell_check_notify_new_lang(code)
+
         menu = gtk.Menu()
         group = gtk.RadioMenuItem()
         connect = []
@@ -465,7 +475,7 @@ class SpellChecker(object):
             start, end = self._marks['click'].word
             if start.has_tag(self._misspelled):
                 word = self._buffer.get_text(start, end,
-                                                 False).decode('utf-8')
+                                             False).decode('utf-8')
                 items = self._suggestion_menu(word)
                 if self.collapse:
                     suggestions = gtk.MenuItem(_('Suggestions'))
@@ -503,12 +513,12 @@ class SpellChecker(object):
 
     def _before_text_insert(self, textbuffer, location, text, length):
         if not self._cherrytree_instance.user_active: return
-        #print "before '%s'" % text
+        # print "before '%s'" % text
         self._marks['insert-start'].move(location)
 
     def _after_text_insert(self, textbuffer, location, text, length):
         if not self._cherrytree_instance.user_active: return
-        #print "after '%s'" % text
+        # print "after '%s'" % text
         start = self._marks['insert-start'].iter
         self.check_range(start, location)
         self._marks['insert-end'].move(location)
@@ -556,7 +566,7 @@ class SpellChecker(object):
             line_end = end.copy()
             line_end.forward_to_line_end()
             line = self._buffer.get_text(line_start, line_end,
-                                             False).decode('utf-8')
+                                         False).decode('utf-8')
             for match in self._regexes[SpellChecker.FILTER_LINE].finditer(line):
                 if match.start() <= start.get_line_offset() <= match.end():
                     start = self._buffer.get_iter_at_line_offset(
@@ -568,7 +578,7 @@ class SpellChecker(object):
         if len(self._filters[SpellChecker.FILTER_TEXT]):
             text_start, text_end = self._buffer.get_bounds()
             text = self._buffer.get_text(text_start, text_end,
-                                             False).decode('utf-8')
+                                         False).decode('utf-8')
             for match in self._regexes[SpellChecker.FILTER_TEXT].finditer(text):
                 if match.start() <= start.get_offset() <= match.end():
                     start = self._buffer.get_iter_at_offset(match.start())

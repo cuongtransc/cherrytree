@@ -1,6 +1,8 @@
 #!/usr/bin/env python2
 
-import os, subprocess, glob
+import glob
+import os
+import subprocess
 
 APP_NAME = "cherrytree"
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -10,5 +12,5 @@ for po_filepath in glob.glob(os.path.join(SCRIPT_DIR, "*.po")):
                  "-U",
                  "--backup=none",
                  po_filepath,
-                 APP_NAME+".pot"]
+                 APP_NAME + ".pot"]
     subprocess.call(shell_cmd)

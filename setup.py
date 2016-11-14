@@ -3,23 +3,29 @@
 # for linux install: "python setup.py install --prefix=/usr -f"
 # for windows exe creation: "python setup.py py2exe"
 
-from distutils.core import setup
-from distutils.dist import Distribution
 from distutils.cmd import Command
-from distutils.command.install_data import install_data
-from distutils.command.install import install
 from distutils.command.build import build
+from distutils.command.install import install
+from distutils.command.install_data import install_data
+from distutils.core import setup
 from distutils.dep_util import newer
-from distutils.log import warn, info, error
+from distutils.dist import Distribution
 from distutils.errors import DistutilsFileError
+from distutils.log import warn, info, error
 
-try: import py2exe
-except: pass
+try:
+    import py2exe
+except:
+    pass
 
 import os, glob, sys, subprocess
 import __builtin__
+
+
 def _(transl_str):
     return transl_str
+
+
 __builtin__._ = _
 __builtin__.SHARE_PATH = ""
 sys.path.append(os.path.join(os.getcwd(), "modules"))
@@ -31,9 +37,9 @@ MO_DIR = os.path.join('build', 'mo')
 
 class CherryTreeDist(Distribution):
     global_options = Distribution.global_options + [
-       ("without-gettext", None, "Don't build/install gettext .mo files")]
+        ("without-gettext", None, "Don't build/install gettext .mo files")]
 
-    def __init__ (self, *args):
+    def __init__(self, *args):
         self.without_gettext = False
         Distribution.__init__(self, *args)
 
@@ -52,7 +58,7 @@ class BuildData(build):
             f_out.close()
             f_in.close()
         if self.distribution.without_gettext: return
-        for po in glob.glob(os.path.join (PO_DIR, '*.po')):
+        for po in glob.glob(os.path.join(PO_DIR, '*.po')):
             lang = os.path.basename(po[:-3])
             mo = os.path.join(MO_DIR, lang, 'cherrytree.mo')
             directory = os.path.dirname(mo)
@@ -100,7 +106,8 @@ class Uninstall(Command):
             if os.path.isfile(file) or os.path.islink(file):
                 info("removing %s" % repr(file))
                 if not self.dry_run:
-                    try: os.unlink(file)
+                    try:
+                        os.unlink(file)
                     except OSError, e:
                         warn("could not delete: %s" % repr(file))
             elif not os.path.isdir(file):
@@ -115,15 +122,17 @@ class Uninstall(Command):
                 if dir.find("site-packages/") > 0:
                     info("removing %s" % repr(dir))
                     if not self.dry_run:
-                        try: os.rmdir(dir)
+                        try:
+                            os.rmdir(dir)
                         except OSError, e:
                             warn("could not remove directory: %s" % str(e))
-                else: info("skipping empty directory %s" % repr(dir))
+                else:
+                    info("skipping empty directory %s" % repr(dir))
 
 
 class Install(install):
     def run(self):
-        self.distribution.scripts=['cherrytree']
+        self.distribution.scripts = ['cherrytree']
         install.run(self)
 
 
@@ -134,9 +143,9 @@ class InstallData(install_data):
         install_data.run(self)
 
     def _find_desktop_file(self):
-        return [("share/applications", ["linux/cherrytree.desktop"] )]
+        return [("share/applications", ["linux/cherrytree.desktop"])]
 
-    def _find_mo_files (self):
+    def _find_mo_files(self):
         data_files = []
         if not self.distribution.without_gettext:
             for mo in glob.glob(os.path.join(MO_DIR, '*', 'cherrytree.mo')):
@@ -147,62 +156,63 @@ class InstallData(install_data):
 
 
 if "py2exe" in sys.argv:
-    data_files = [("glade", glob.glob("glade/*.*") ), ("language-specs", glob.glob("language-specs/*.lang") )]
+    data_files = [("glade", glob.glob("glade/*.*")), ("language-specs", glob.glob("language-specs/*.lang"))]
     import enchant
+
     data_files.extend(enchant.utils.win32_data_files())
     for lang in cons.AVAILABLE_LANGS:
         if lang in ["default", "en"]: continue
-        data_files.append( ("locale/%s/LC_MESSAGES" % lang, ["locale/%s/LC_MESSAGES/cherrytree.mo" % lang] ) )
+        data_files.append(("locale/%s/LC_MESSAGES" % lang, ["locale/%s/LC_MESSAGES/cherrytree.mo" % lang]))
     setup(
-       name = "CherryTree",
-       description = "Hierarchical Note Taking",
-       long_description = "A Hierarchical Note Taking Application, featuring Rich Text and Syntax Highlighting",
-       version = cons.VERSION,
-       author = "Giuseppe Penone",
-       author_email = "giuspen@gmail.com",
-       url = "http://www.giuspen.com/cherrytree/",
-       license = "GPL",
-       windows = [{"script": "cherrytree",
-                   "icon_resources": [(1, "glade/cherrytree.ico")]
-                   }],
-       options={"py2exe": {
-                   "includes": "pango,cairo,pangocairo,atk,gobject,gtk,gtksourceview2,gio,enchant",
-                   "dll_excludes": [
-                                 "libgdk-win32-2.0-0.dll",
-                                 "libgtk-win32-2.0-0.dll",
-                                 "libpangowin32-1.0-0.dll"],
-                          }
-                },
-       data_files = data_files,
+        name="CherryTree",
+        description="Hierarchical Note Taking",
+        long_description="A Hierarchical Note Taking Application, featuring Rich Text and Syntax Highlighting",
+        version=cons.VERSION,
+        author="Giuseppe Penone",
+        author_email="giuspen@gmail.com",
+        url="http://www.giuspen.com/cherrytree/",
+        license="GPL",
+        windows=[{"script": "cherrytree",
+                  "icon_resources": [(1, "glade/cherrytree.ico")]
+                  }],
+        options={"py2exe": {
+            "includes": "pango,cairo,pangocairo,atk,gobject,gtk,gtksourceview2,gio,enchant",
+            "dll_excludes": [
+                "libgdk-win32-2.0-0.dll",
+                "libgtk-win32-2.0-0.dll",
+                "libpangowin32-1.0-0.dll"],
+        }
+        },
+        data_files=data_files,
     )
     print "remember to copy 7za.exe to the dist folder and relocate lib/enchant and share/enchant"
 else:
     setup(
-       name = "CherryTree",
-       description = "Hierarchical Note Taking",
-       long_description = "A Hierarchical Note Taking Application, featuring Rich Text and Syntax Highlighting",
-       version = cons.VERSION,
-       author = "Giuseppe Penone",
-       author_email = "giuspen@gmail.com",
-       url = "http://www.giuspen.com/cherrytree/",
-       license = "GPL",
-       data_files = [
-                      ("share/icons/hicolor/scalable/apps", ["glade/svg/cherrytree.svg"] ),
-                      ("share/cherrytree/glade", glob.glob("glade/*.*") ),
-                      ("share/cherrytree/language-specs", glob.glob("language-specs/*.lang") ),
-                      ("share/cherrytree/modules", glob.glob("modules/*.py") ),
-                      ("share/mime/packages", ["linux/cherrytree.xml"]),
-                      ("share/mime-info", ["linux/cherrytree.mime", "linux/cherrytree.keys"]),
-                      ("share/application-registry", ["linux/cherrytree.applications"]),
-                      ("share/appdata", ["linux/cherrytree.appdata.xml"]),
-                      ("share/man/man1", ["linux/cherrytree.1.gz"])
-                   ],
-       cmdclass={
+        name="CherryTree",
+        description="Hierarchical Note Taking",
+        long_description="A Hierarchical Note Taking Application, featuring Rich Text and Syntax Highlighting",
+        version=cons.VERSION,
+        author="Giuseppe Penone",
+        author_email="giuspen@gmail.com",
+        url="http://www.giuspen.com/cherrytree/",
+        license="GPL",
+        data_files=[
+            ("share/icons/hicolor/scalable/apps", ["glade/svg/cherrytree.svg"]),
+            ("share/cherrytree/glade", glob.glob("glade/*.*")),
+            ("share/cherrytree/language-specs", glob.glob("language-specs/*.lang")),
+            ("share/cherrytree/modules", glob.glob("modules/*.py")),
+            ("share/mime/packages", ["linux/cherrytree.xml"]),
+            ("share/mime-info", ["linux/cherrytree.mime", "linux/cherrytree.keys"]),
+            ("share/application-registry", ["linux/cherrytree.applications"]),
+            ("share/appdata", ["linux/cherrytree.appdata.xml"]),
+            ("share/man/man1", ["linux/cherrytree.1.gz"])
+        ],
+        cmdclass={
             'build': BuildData,
             'install_data': InstallData,
             'install': Install,
             'uninstall': Uninstall
-          },
-       distclass=CherryTreeDist
+        },
+        distclass=CherryTreeDist
     )
     subprocess.call("update-desktop-database")

@@ -19,9 +19,18 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #       MA 02110-1301, USA.
 
-import gtk, pango
-import os, csv, codecs, cStringIO, copy
-import cons, menus, support
+import cStringIO
+import codecs
+import copy
+import csv
+import gtk
+import os
+
+import pango
+
+import cons
+import menus
+import support
 
 
 class TablesHandler:
@@ -51,9 +60,9 @@ class TablesHandler:
         """Opens the Table Column Handle Dialog"""
         dialog = gtk.Dialog(title=title,
                             parent=self.dad.window,
-                            flags=gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT,
+                            flags=gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
                             buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT,
-                            gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+                                     gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
         dialog.set_default_size(300, -1)
         dialog.set_position(gtk.WIN_POS_CENTER_ON_PARENT)
 
@@ -124,38 +133,54 @@ class TablesHandler:
         content_area.set_spacing(5)
         content_area.pack_start(tablehandle_vbox_col)
         content_area.show_all()
+
         def on_key_press_tablecolhandle(widget, event):
             keyname = gtk.gdk.keyval_name(event.keyval)
             if keyname == cons.STR_KEY_RETURN:
-                try: dialog.get_widget_for_response(gtk.RESPONSE_ACCEPT).clicked()
-                except: print cons.STR_PYGTK_222_REQUIRED
+                try:
+                    dialog.get_widget_for_response(gtk.RESPONSE_ACCEPT).clicked()
+                except:
+                    print cons.STR_PYGTK_222_REQUIRED
                 return True
             elif keyname == cons.STR_KEY_TAB:
-                if self.dad.table_column_mode == "rename": table_column_delete_radiobutton.set_active(True)
-                elif self.dad.table_column_mode == "delete": table_column_add_radiobutton.set_active(True)
-                elif self.dad.table_column_mode == "add": table_column_left_radiobutton.set_active(True)
-                elif self.dad.table_column_mode == cons.TAG_PROP_LEFT: table_column_right_radiobutton.set_active(True)
-                else: table_column_rename_radiobutton.set_active(True)
+                if self.dad.table_column_mode == "rename":
+                    table_column_delete_radiobutton.set_active(True)
+                elif self.dad.table_column_mode == "delete":
+                    table_column_add_radiobutton.set_active(True)
+                elif self.dad.table_column_mode == "add":
+                    table_column_left_radiobutton.set_active(True)
+                elif self.dad.table_column_mode == cons.TAG_PROP_LEFT:
+                    table_column_right_radiobutton.set_active(True)
+                else:
+                    table_column_rename_radiobutton.set_active(True)
                 return True
             return False
+
         def on_table_column_rename_radiobutton_toggled(radiobutton):
             if radiobutton.get_active():
                 table_column_rename_entry.set_sensitive(True)
                 self.dad.table_column_mode = "rename"
                 table_column_rename_entry.grab_focus()
-            else: table_column_rename_entry.set_sensitive(False)
+            else:
+                table_column_rename_entry.set_sensitive(False)
+
         def on_table_column_delete_radiobutton_toggled(radiobutton):
             if radiobutton.get_active(): self.dad.table_column_mode = "delete"
+
         def on_table_column_add_radiobutton_toggled(radiobutton):
             if radiobutton.get_active():
                 table_column_new_entry.set_sensitive(True)
                 self.dad.table_column_mode = "add"
                 table_column_new_entry.grab_focus()
-            else: table_column_new_entry.set_sensitive(False)
+            else:
+                table_column_new_entry.set_sensitive(False)
+
         def on_table_column_left_radiobutton_toggled(radiobutton):
             if radiobutton.get_active(): self.dad.table_column_mode = cons.TAG_PROP_LEFT
+
         def on_table_column_right_radiobutton_toggled(radiobutton):
             if radiobutton.get_active(): self.dad.table_column_mode = cons.TAG_PROP_RIGHT
+
         dialog.connect('key_press_event', on_key_press_tablecolhandle)
         table_column_rename_radiobutton.connect('toggled', on_table_column_rename_radiobutton_toggled)
         table_column_delete_radiobutton.connect('toggled', on_table_column_delete_radiobutton_toggled)
@@ -174,9 +199,9 @@ class TablesHandler:
         """Opens the Table Handle Dialog"""
         dialog = gtk.Dialog(title=title,
                             parent=self.dad.window,
-                            flags=gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT,
+                            flags=gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
                             buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT,
-                            gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+                                     gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
         dialog.set_default_size(300, -1)
         dialog.set_position(gtk.WIN_POS_CENTER_ON_PARENT)
 
@@ -199,7 +224,7 @@ class TablesHandler:
         size_align.set_padding(6, 6, 6, 6)
         size_align.add(hbox_rows_cols)
 
-        size_frame = gtk.Frame(label="<b>"+_("Table Size")+"</b>")
+        size_frame = gtk.Frame(label="<b>" + _("Table Size") + "</b>")
         size_frame.get_label_widget().set_use_markup(True)
         size_frame.set_shadow_type(gtk.SHADOW_NONE)
         size_frame.add(size_align)
@@ -223,7 +248,7 @@ class TablesHandler:
         col_min_max_align.set_padding(6, 6, 6, 6)
         col_min_max_align.add(hbox_col_min_max)
 
-        col_min_max_frame = gtk.Frame(label="<b>"+_("Column Properties")+"</b>")
+        col_min_max_frame = gtk.Frame(label="<b>" + _("Column Properties") + "</b>")
         col_min_max_frame.get_label_widget().set_use_markup(True)
         col_min_max_frame.set_shadow_type(gtk.SHADOW_NONE)
         col_min_max_frame.add(col_min_max_align)
@@ -236,6 +261,7 @@ class TablesHandler:
         content_area.pack_start(col_min_max_frame)
         if is_insert: content_area.pack_start(checkbutton_table_ins_from_file)
         content_area.show_all()
+
         def on_key_press_tablehandle(widget, event):
             keyname = gtk.gdk.keyval_name(event.keyval)
             if keyname == cons.STR_KEY_RETURN:
@@ -243,13 +269,17 @@ class TablesHandler:
                 spinbutton_columns.update()
                 spinbutton_col_min.update()
                 spinbutton_col_max.update()
-                try: dialog.get_widget_for_response(gtk.RESPONSE_ACCEPT).clicked()
-                except: print cons.STR_PYGTK_222_REQUIRED
+                try:
+                    dialog.get_widget_for_response(gtk.RESPONSE_ACCEPT).clicked()
+                except:
+                    print cons.STR_PYGTK_222_REQUIRED
                 return True
             return False
+
         def on_checkbutton_table_ins_from_file_toggled(checkbutton):
             size_frame.set_sensitive(not checkbutton.get_active())
             col_min_max_frame.set_sensitive(not checkbutton.get_active())
+
         dialog.connect('key_press_event', on_key_press_tablehandle)
         checkbutton_table_ins_from_file.connect('toggled', on_checkbutton_table_ins_from_file_toggled)
         response = dialog.run()
@@ -289,9 +319,9 @@ class TablesHandler:
             self.table_insert(iter_insert)
         else:
             filepath = support.dialog_file_select(filter_pattern=["*.csv"],
-                filter_name=_("CSV File"),
-                curr_folder=self.dad.pick_dir_csv,
-                parent=self.dad.window)
+                                                  filter_name=_("CSV File"),
+                                                  curr_folder=self.dad.pick_dir_csv,
+                                                  parent=self.dad.window)
             if filepath != None:
                 self.dad.pick_dir_csv = os.path.dirname(filepath)
                 support.text_file_rm_emptylines(filepath)
@@ -318,11 +348,11 @@ class TablesHandler:
             table_col_min = table['col_min']
             table_col_max = table['col_max']
         else:
-            headers = [_("click me")]*self.dad.table_columns
+            headers = [_("click me")] * self.dad.table_columns
             table_col_min = self.dad.table_col_min
             table_col_max = self.dad.table_col_max
         anchor = text_buffer.create_child_anchor(iter_insert)
-        anchor.liststore = gtk.ListStore(*(str,)*self.dad.table_columns)
+        anchor.liststore = gtk.ListStore(*(str,) * self.dad.table_columns)
         anchor.treeview = gtk.TreeView(anchor.liststore)
         for element in range(self.dad.table_columns):
             label = gtk.Label('<b>' + headers[element] + '</b>')
@@ -357,11 +387,13 @@ class TablesHandler:
         self.dad.sourceview.add_child_at_anchor(anchor.eventbox, anchor)
         anchor.eventbox.show_all()
         for row in range(self.dad.table_rows):
-            row_iter = anchor.liststore.append([""]*self.dad.table_columns)
+            row_iter = anchor.liststore.append([""] * self.dad.table_columns)
             if table != None:
                 for column in range(self.dad.table_columns):
-                    try: anchor.liststore[row_iter][column] = table['matrix'][row][column]
-                    except: pass # there are cases when some rows have less columns
+                    try:
+                        anchor.liststore[row_iter][column] = table['matrix'][row][column]
+                    except:
+                        pass  # there are cases when some rows have less columns
         if table_justification:
             text_iter = text_buffer.get_iter_at_child_anchor(anchor)
             self.dad.state_machine.apply_object_justification(text_iter, table_justification, text_buffer)
@@ -395,7 +427,7 @@ class TablesHandler:
         if not self.dad.is_curr_node_not_read_only_or_error(): return
         cursor_pos = self.curr_table_cell.get_position()
         self.curr_table_cell.insert_text(cons.CHAR_NEWLINE, cursor_pos)
-        self.curr_table_cell.set_position(cursor_pos+1)
+        self.curr_table_cell.set_position(cursor_pos + 1)
 
     def on_table_cell_key_press(self, widget, event, path, model, col_num):
         """Catches Table Cell key presses"""
@@ -423,18 +455,18 @@ class TablesHandler:
                         next_path = path
                     else:
                         next_iter = None
-                        next_path =  model.get_path(model.get_iter(path))
+                        next_path = model.get_path(model.get_iter(path))
                         while not next_iter and next_path[0] > 0:
                             node_path_list = list(next_path)
                             node_path_list[0] -= 1
                             next_path = tuple(node_path_list)
                             next_iter = model.get_iter(next_path)
-                        #next_iter = model.iter_next(model.get_iter(path))
+                        # next_iter = model.iter_next(model.get_iter(path))
                         if not next_iter: return False
                         next_path = model.get_path(next_iter)
-                        next_col_num = self.dad.table_columns-1
+                        next_col_num = self.dad.table_columns - 1
                 else:
-                    if col_num < self.dad.table_columns-1:
+                    if col_num < self.dad.table_columns - 1:
                         next_col_num = col_num + 1
                         next_path = path
                     else:
@@ -442,13 +474,13 @@ class TablesHandler:
                         if not next_iter: return False
                         next_path = model.get_path(next_iter)
                         next_col_num = 0
-                #print "(path, col_num) = (%s, %s)" % (path, col_num)
-                #print "(next_path, next_col_num) = (%s, %s)" % (next_path, next_col_num)
+                # print "(path, col_num) = (%s, %s)" % (path, col_num)
+                # print "(next_path, next_col_num) = (%s, %s)" % (next_path, next_col_num)
                 next_column = self.curr_table_anchor.treeview.get_columns()[next_col_num]
                 self.curr_table_anchor.treeview.set_cursor_on_cell(next_path,
-                    focus_column=next_column,
-                    focus_cell=next_column.get_cell_renderers()[0],
-                    start_editing=True)
+                                                                   focus_column=next_column,
+                                                                   focus_cell=next_column.get_cell_renderers()[0],
+                                                                   start_editing=True)
                 return True
         return False
 
@@ -473,8 +505,8 @@ class TablesHandler:
         if not ret_ok: return
         table = self.dad.state_machine.table_to_dict(anchor)
         headers = table['matrix'].pop()
-        if (self.dad.table_column_mode == 'right' and col_num == len(headers)-1)\
-        or (self.dad.table_column_mode == 'left' and col_num == 0):
+        if (self.dad.table_column_mode == 'right' and col_num == len(headers) - 1) \
+                or (self.dad.table_column_mode == 'left' and col_num == 0):
             return
         iter_insert = self.dad.curr_buffer.get_iter_at_child_anchor(anchor)
         table_justification = self.dad.state_machine.get_iter_alignment(iter_insert)
@@ -517,8 +549,10 @@ class TablesHandler:
             while curr_iter:
                 iter = curr_iter
                 curr_iter = model.iter_next(curr_iter)
-        if action == "delete": model.remove(iter)
-        elif action == "add": model.insert_after(iter, [""]*len(self.curr_table_anchor.headers))
+        if action == "delete":
+            model.remove(iter)
+        elif action == "add":
+            model.insert_after(iter, [""] * len(self.curr_table_anchor.headers))
         elif action == "move_up":
             prev_iter = self.dad.get_tree_iter_prev_sibling(model, iter)
             if prev_iter == None: return
@@ -542,7 +576,7 @@ class TablesHandler:
             if not movements: return
         elif action in ["cut", "copy"]:
             columns_num = len(self.curr_table_anchor.headers)
-            table = {'matrix':[],
+            table = {'matrix': [],
                      'col_min': self.curr_table_anchor.table_col_min,
                      'col_max': self.curr_table_anchor.table_col_max}
             row = []
@@ -550,11 +584,14 @@ class TablesHandler:
             table['matrix'].append(row)
             table['matrix'].append(copy.deepcopy(self.curr_table_anchor.headers))
             self.dad.clipboard_handler.table_row_to_clipboard(table)
-            if action == "cut": model.remove(iter)
-            else: return
+            if action == "cut":
+                model.remove(iter)
+            else:
+                return
         elif action == "paste":
             if not self.dad.clipboard_handler.table_row_paste([model, iter]): return
-        else: return
+        else:
+            return
         self.dad.update_window_save_needed("nbuf", True)
 
     def table_row_add(self, *args):
@@ -610,12 +647,14 @@ class TablesHandler:
             if keyname == "comma":
                 if event.state & gtk.gdk.MOD1_MASK:
                     self.table_row_delete()
-                else: self.table_row_add()
+                else:
+                    self.table_row_add()
                 return True
             if keyname == "period":
                 if event.state & gtk.gdk.MOD1_MASK:
                     self.table_row_up()
-                else: self.table_row_down()
+                else:
+                    self.table_row_down()
                 return True
         elif keyname == cons.STR_KEY_MENU:
             self.curr_table_anchor = anchor
@@ -642,6 +681,7 @@ class UTF8Recoder:
     """
     Iterator that reads an encoded stream and reencodes the input to UTF-8
     """
+
     def __init__(self, f, encoding):
         self.reader = codecs.getreader(encoding)(f)
 
@@ -657,6 +697,7 @@ class UnicodeReader:
     A CSV reader which will iterate over lines in the CSV file "f",
     which is encoded in the given encoding.
     """
+
     def __init__(self, f, dialect=csv.excel, encoding=cons.STR_UTF8, **kwds):
         f = UTF8Recoder(f, encoding)
         self.reader = csv.reader(f, dialect=dialect, **kwds)
@@ -665,7 +706,8 @@ class UnicodeReader:
         try:
             row = self.reader.next()
             return [unicode(s, cons.STR_UTF8, cons.STR_IGNORE) for s in row]
-        except: return None
+        except:
+            return None
 
     def __iter__(self):
         return self

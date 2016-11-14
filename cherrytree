@@ -20,13 +20,17 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #       MA 02110-1301, USA.
 
-import os, sys, __builtin__
+import __builtin__
+import os
+import sys
 
 try:
     import argparse
+
     ARGPARSE_OK = True
 except:
     ARGPARSE_OK = False
+
 
 def f_main(args):
     if hasattr(sys, 'frozen'):
@@ -35,8 +39,8 @@ def f_main(args):
         MODULES_PATH = os.path.join(SHARE_PATH, 'modules')
     else:
         SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-        if os.path.isfile(os.path.join(SCRIPT_DIR, 'glade', 'cherrytree.png'))\
-        and os.path.isfile(os.path.join(SCRIPT_DIR, 'modules', 'main.py')):
+        if os.path.isfile(os.path.join(SCRIPT_DIR, 'glade', 'cherrytree.png')) \
+                and os.path.isfile(os.path.join(SCRIPT_DIR, 'modules', 'main.py')):
             # not installed
             SHARE_PATH = SCRIPT_DIR
             MODULES_PATH = os.path.join(SCRIPT_DIR, 'modules')
@@ -49,6 +53,7 @@ def f_main(args):
     import main
     main.main(args)
 
+
 if ARGPARSE_OK:
     parser = argparse.ArgumentParser()
     parser.add_argument('filepath', nargs='?', help='Optional CherryTree Document to Open')
@@ -60,13 +65,18 @@ else:
         node = None
         filepath = None
         export_to_html_dir = None
+
+
     args = CherryArgs
     if len(sys.argv) > 1:
         if sys.argv[1] == "-h":
             print "cherrytree [filepath [-n nodename][-x export_to_html_dir]]"
             exit(0)
-        else: args.filepath = sys.argv[1]
+        else:
+            args.filepath = sys.argv[1]
         if len(sys.argv) > 3:
-            if sys.argv[2] == "-n": args.node = sys.argv[3]
-            elif sys.argv[2] == "-x": args.export_to_html_dir = sys.argv[3]
+            if sys.argv[2] == "-n":
+                args.node = sys.argv[3]
+            elif sys.argv[2] == "-x":
+                args.export_to_html_dir = sys.argv[3]
 f_main(args)

@@ -19,9 +19,10 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #       MA 02110-1301, USA.
 
-import gtk
 import re
-import cons, support
+
+import cons
+import support
 
 
 class ListsHandler:
@@ -51,7 +52,7 @@ class ListsHandler:
         new_par_offset = -1
         leading_num_count = []
         while new_par_offset < end_offset:
-            #print new_par_offset, end_offset
+            # print new_par_offset, end_offset
             iter_start, iter_end = self.get_paragraph_iters(text_buffer=text_buffer, force_iter=iter_start)
             if not iter_start:
                 # empty line
@@ -66,15 +67,16 @@ class ListsHandler:
                         text_buffer.insert(iter_start, "1. ")
                 break
             list_info = self.get_paragraph_list_info(iter_start)
-            #print list_info
+            # print list_info
             if list_info and iter_start.get_offset() != list_info["startoffs"]:
                 new_par_offset = iter_end.get_offset()
             else:
-                iter_start, iter_end, chars_rm = self.list_check_n_remove_old_list_type_leading(iter_start, iter_end, text_buffer)
+                iter_start, iter_end, chars_rm = self.list_check_n_remove_old_list_type_leading(iter_start, iter_end,
+                                                                                                text_buffer)
                 end_offset -= chars_rm
                 if not list_info or self.get_list_type(list_info["num"]) != self.get_list_type(target_list_num_id):
                     # the target list type differs from this paragraph list type
-                    while support.get_next_chars_from_iter_are(iter_start, [3*cons.CHAR_SPACE]):
+                    while support.get_next_chars_from_iter_are(iter_start, [3 * cons.CHAR_SPACE]):
                         iter_start.forward_chars(3)
                     if target_list_num_id == 0:
                         new_par_offset = iter_end.get_offset() + 2
@@ -83,8 +85,10 @@ class ListsHandler:
                     elif target_list_num_id < 0:
                         new_par_offset = iter_end.get_offset() + 2
                         end_offset += 2
-                        if not list_info: bull_idx = 0
-                        else: bull_idx = list_info["level"] % len(self.dad.chars_listbul)
+                        if not list_info:
+                            bull_idx = 0
+                        else:
+                            bull_idx = list_info["level"] % len(self.dad.chars_listbul)
                         text_buffer.insert(iter_start, self.dad.chars_listbul[bull_idx] + cons.CHAR_SPACE)
                     else:
                         if not list_info:
@@ -92,7 +96,7 @@ class ListsHandler:
                             if not leading_num_count:
                                 leading_num_count = [[0, 1]]
                             else:
-                                leading_num_count = [[0, leading_num_count[0][1]+1]]
+                                leading_num_count = [[0, leading_num_count[0][1] + 1]]
                         else:
                             level = list_info["level"]
                             index = level % cons.NUM_CHARS_LISTNUM
@@ -114,8 +118,9 @@ class ListsHandler:
                         new_par_offset = iter_end.get_offset() + len(leading_str)
                         end_offset += len(leading_str)
                         text_buffer.insert(iter_start, leading_str)
-                else: new_par_offset = iter_end.get_offset()
-            iter_start = text_buffer.get_iter_at_offset(new_par_offset+1)
+                else:
+                    new_par_offset = iter_end.get_offset()
+            iter_start = text_buffer.get_iter_at_offset(new_par_offset + 1)
             if not iter_start: break
 
     def list_check_n_remove_old_list_type_leading(self, iter_start, iter_end, text_buffer):
@@ -125,7 +130,7 @@ class ListsHandler:
         list_info = self.get_paragraph_list_info(iter_start)
         if list_info:
             leading_chars_num = self.get_leading_chars_num(list_info["num"])
-            start_offset += 3*list_info["level"]
+            start_offset += 3 * list_info["level"]
             iter_start = text_buffer.get_iter_at_offset(start_offset)
             iter_end = iter_start.copy()
             iter_end.forward_chars(leading_chars_num)
@@ -150,15 +155,15 @@ class ListsHandler:
             char = iter_start.get_char()
             if char in self.dad.chars_listbul:
                 if iter_start.forward_char() and iter_start.get_char() == cons.CHAR_SPACE:
-                    num = (self.dad.chars_listbul.index(char) + 1)*(-1)
-                    return {"num":num, "level":level, "aux":None}
+                    num = (self.dad.chars_listbul.index(char) + 1) * (-1)
+                    return {"num": num, "level": level, "aux": None}
                 break
             if char in [cons.CHAR_LISTTODO, cons.CHAR_LISTDONEOK, cons.CHAR_LISTDONEFAIL]:
                 if iter_start.forward_char() and iter_start.get_char() == cons.CHAR_SPACE:
-                    return {"num":0, "level":level, "aux":None}
+                    return {"num": 0, "level": level, "aux": None}
                 break
             if char == cons.CHAR_SPACE:
-                if support.get_next_chars_from_iter_are(iter_start, [3*cons.CHAR_SPACE]):
+                if support.get_next_chars_from_iter_are(iter_start, [3 * cons.CHAR_SPACE]):
                     iter_start.forward_chars(3)
                     level += 1
                 else:
@@ -174,9 +179,9 @@ class ListsHandler:
                 if char in cons.CHARS_LISTNUM and iter_start.forward_char() and iter_start.get_char() == cons.CHAR_SPACE:
                     num = int(number_str)
                     aux = cons.CHARS_LISTNUM.index(char)
-                    return {"num":num, "level":level, "aux":aux}
+                    return {"num": num, "level": level, "aux": aux}
                 break
-        return {"num":None, "level":level, "aux":None}
+        return {"num": None, "level": level, "aux": None}
 
     def get_multiline_list_element_end_offset(self, curr_iter, list_info):
         """Get the list end offset"""
@@ -190,11 +195,11 @@ class ListsHandler:
                 # the end of buffer is also the list end
                 return iter_start.get_offset()
         number_n_level = self.list_get_number_n_level(iter_start)
-        #print number_n_level
-        if number_n_level["num"] == None and number_n_level["level"] == list_info["level"]+1:
+        # print number_n_level
+        if number_n_level["num"] == None and number_n_level["level"] == list_info["level"] + 1:
             # multiline indentation
             return self.get_multiline_list_element_end_offset(iter_start, list_info)
-        return iter_start.get_offset()-1
+        return iter_start.get_offset() - 1
 
     def get_prev_list_info_on_level(self, iter_start, level):
         """Given a level check for previous list number on the level or None"""
@@ -230,43 +235,46 @@ class ListsHandler:
         iter_start = iter_start_orig.copy()
         # let's search for the paragraph start
         if iter_start.get_char() == cons.CHAR_NEWLINE:
-            if not iter_start.backward_char(): buffer_start = True # if we are exactly on the paragraph end
+            if not iter_start.backward_char(): buffer_start = True  # if we are exactly on the paragraph end
         if not buffer_start:
             while iter_start:
-                if iter_start.get_char() == cons.CHAR_NEWLINE: break # we got the previous paragraph start
+                if iter_start.get_char() == cons.CHAR_NEWLINE:
+                    break  # we got the previous paragraph start
                 elif not iter_start.backward_char():
                     buffer_start = True
-                    break # we reached the buffer start
+                    break  # we reached the buffer start
         if not buffer_start: iter_start.forward_char()
         # get the number of the paragraph starting with iter_start
         number_n_level = self.list_get_number_n_level(iter_start)
         curr_level = number_n_level["level"]
         if number_n_level["num"] != None:
-            return {"num":number_n_level["num"],
-                    "level":curr_level,
-                    "aux":number_n_level["aux"],
-                    "startoffs":iter_start.get_offset()}
-        #print number_n_level
+            return {"num": number_n_level["num"],
+                    "level": curr_level,
+                    "aux": number_n_level["aux"],
+                    "startoffs": iter_start.get_offset()}
+        # print number_n_level
         if not buffer_start and curr_level > 0:
             # may be a list paragraph but after a shift+return
             iter_start.backward_char()
             list_info = self.get_paragraph_list_info(iter_start)
-            #print list_info
+            # print list_info
             if list_info:
-                if (list_info["num"] != None and list_info["level"] == (curr_level-1))\
-                or (list_info["num"] == None and list_info["level"] == curr_level):
+                if (list_info["num"] != None and list_info["level"] == (curr_level - 1)) \
+                        or (list_info["num"] == None and list_info["level"] == curr_level):
                     return list_info
-        return None # this paragraph is not a list
+        return None  # this paragraph is not a list
 
     def get_paragraph_iters(self, text_buffer=None, force_iter=None):
         """Generates and Returns two iters indicating the paragraph bounds"""
         if not text_buffer: text_buffer = self.dad.curr_buffer
         if not force_iter and text_buffer.get_has_selection():
-            iter_start, iter_end = text_buffer.get_selection_bounds() # there's a selection
+            iter_start, iter_end = text_buffer.get_selection_bounds()  # there's a selection
         else:
             # There's not a selection/iter forced
-            if not force_iter: iter_start = text_buffer.get_iter_at_mark(text_buffer.get_insert())
-            else: iter_start = force_iter.copy()
+            if not force_iter:
+                iter_start = text_buffer.get_iter_at_mark(text_buffer.get_insert())
+            else:
+                iter_start = force_iter.copy()
             iter_end = iter_start.copy()
             if iter_start.get_char() == cons.CHAR_NEWLINE:
                 # we're upon a row end
@@ -274,14 +282,17 @@ class ListsHandler:
                 if iter_start.get_char() == cons.CHAR_NEWLINE: return (None, None)
         while iter_end != None:
             char = iter_end.get_char()
-            if char == cons.CHAR_NEWLINE: break # we got it
-            elif not iter_end.forward_char(): break # we reached the buffer end
+            if char == cons.CHAR_NEWLINE:
+                break  # we got it
+            elif not iter_end.forward_char():
+                break  # we reached the buffer end
         while iter_start != None:
             char = iter_start.get_char()
-            if char == cons.CHAR_NEWLINE: # we got it
-                iter_start.forward_char() # step forward to the beginning of the new line
+            if char == cons.CHAR_NEWLINE:  # we got it
+                iter_start.forward_char()  # step forward to the beginning of the new line
                 break
-            elif not iter_start.backward_char(): break # we reached the buffer start
+            elif not iter_start.backward_char():
+                break  # we reached the buffer start
         return (iter_start, iter_end)
 
     def is_list_todo_beginning(self, square_bracket_open_iter):
@@ -296,13 +307,13 @@ class ListsHandler:
         """Rotate status between ☐ and ☑ and ☒"""
         iter_offset = todo_char_iter.get_offset()
         if todo_char_iter.get_char() == cons.CHAR_LISTTODO:
-            text_buffer.delete(todo_char_iter, text_buffer.get_iter_at_offset(iter_offset+1))
+            text_buffer.delete(todo_char_iter, text_buffer.get_iter_at_offset(iter_offset + 1))
             text_buffer.insert(text_buffer.get_iter_at_offset(iter_offset), cons.CHAR_LISTDONEOK)
         elif todo_char_iter.get_char() == cons.CHAR_LISTDONEOK:
-            text_buffer.delete(todo_char_iter, text_buffer.get_iter_at_offset(iter_offset+1))
+            text_buffer.delete(todo_char_iter, text_buffer.get_iter_at_offset(iter_offset + 1))
             text_buffer.insert(text_buffer.get_iter_at_offset(iter_offset), cons.CHAR_LISTDONEFAIL)
         elif todo_char_iter.get_char() == cons.CHAR_LISTDONEFAIL:
-            text_buffer.delete(todo_char_iter, text_buffer.get_iter_at_offset(iter_offset+1))
+            text_buffer.delete(todo_char_iter, text_buffer.get_iter_at_offset(iter_offset + 1))
             text_buffer.insert(text_buffer.get_iter_at_offset(iter_offset), cons.CHAR_LISTTODO)
 
     def char_iter_forward_to_newline(self, char_iter):
@@ -330,19 +341,22 @@ class ListsHandler:
                 first_line = False
                 if keep_cleaning:
                     iter_bis = curr_iter.copy()
-                    if iter_bis.get_char() == cons.CHAR_SPACE and iter_bis.forward_char()\
-                    and iter_bis.get_char() == cons.CHAR_SPACE and iter_bis.forward_char()\
-                    and iter_bis.get_char() == cons.CHAR_SPACE:
+                    if iter_bis.get_char() == cons.CHAR_SPACE and iter_bis.forward_char() \
+                            and iter_bis.get_char() == cons.CHAR_SPACE and iter_bis.forward_char() \
+                            and iter_bis.get_char() == cons.CHAR_SPACE:
                         no_stop = self.char_iter_forward_to_newline(curr_iter)
                         text_buffer.remove_all_tags(iter_bis, curr_iter)
-                        if no_stop: continue
-                        else: break
-                    else: keep_cleaning = False
-                if curr_iter.get_char() == cons.CHAR_SQ_BR_OPEN and curr_iter.forward_char()\
-                and curr_iter.get_char() in [cons.CHAR_SPACE, "X"]:
+                        if no_stop:
+                            continue
+                        else:
+                            break
+                    else:
+                        keep_cleaning = False
+                if curr_iter.get_char() == cons.CHAR_SQ_BR_OPEN and curr_iter.forward_char() \
+                        and curr_iter.get_char() in [cons.CHAR_SPACE, "X"]:
                     middle_char = curr_iter.get_char()
-                    if curr_iter.forward_char() and curr_iter.get_char() == cons.CHAR_SQ_BR_CLOSE\
-                    and curr_iter.forward_char():
+                    if curr_iter.forward_char() and curr_iter.get_char() == cons.CHAR_SQ_BR_CLOSE \
+                            and curr_iter.forward_char():
                         first_iter = curr_iter.copy()
                         first_iter.backward_chars(3)
                         iter_offset = first_iter.get_offset()
@@ -353,10 +367,13 @@ class ListsHandler:
                         if middle_char != cons.CHAR_SPACE:
                             first_iter = curr_iter.copy()
                             no_stop = self.char_iter_forward_to_newline(curr_iter)
-                            #print "%s(%s),%s(%s)" % (first_iter.get_char(), first_iter.get_offset(), curr_iter.get_char(), curr_iter.get_offset())
+                            # print "%s(%s),%s(%s)" % (first_iter.get_char(), first_iter.get_offset(), curr_iter.get_char(), curr_iter.get_offset())
                             text_buffer.remove_all_tags(first_iter, curr_iter)
                             keep_cleaning = True
-                            if no_stop: continue
-                            else: break
-                else: fw_needed = False
+                            if no_stop:
+                                continue
+                            else:
+                                break
+                else:
+                    fw_needed = False
             if fw_needed and not self.char_iter_forward_to_newline(curr_iter): break

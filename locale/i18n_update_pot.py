@@ -1,6 +1,8 @@
 #!/usr/bin/env python2
 
-import os, subprocess, glob
+import glob
+import os
+import subprocess
 
 APP_NAME = "cherrytree"
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -11,6 +13,6 @@ shell_cmd = ["xgettext",
              "--language=Python",
              "--from-code=utf-8",
              "--keyword=_",
-             "--output=%s" % os.path.join(SCRIPT_DIR, APP_NAME+".pot")
+             "--output=%s" % os.path.join(SCRIPT_DIR, APP_NAME + ".pot")
              ] + PY_FILES
 subprocess.call(shell_cmd)

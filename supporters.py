@@ -3,7 +3,7 @@
 
 import re
 
-SUPPORTERS="""
+SUPPORTERS = """
 <h2>Friends of giuspen.com (donated €3137,53)</h2>
 • Miguel Latorre (Spain) donated €240
 • DistroWatch.com (International) donated €200
@@ -164,7 +164,7 @@ for supporter_line in SUPPORTERS.split("\n"):
     match = re.search(r"\(([^\)]+)\) donated €(\d+,\d+|\d+)", supporter_line, re.UNICODE)
     if match:
         curr_country = match.group(1)
-        curr_donation = float(match.group(2).replace(",","."))
+        curr_donation = float(match.group(2).replace(",", "."))
         sum_donations += curr_donation
         if not curr_country in countries_dict.keys():
             countries_dict[curr_country] = float(0)

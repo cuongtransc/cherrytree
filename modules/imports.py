@@ -19,16 +19,34 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #       MA 02110-1301, USA.
 
-import HTMLParser, htmlentitydefs
-import gtk, gio, os, xml.dom.minidom, re, base64, urllib2, binascii, shutil, glob, time
-import cons, machines, support
+import HTMLParser
+import base64
+import binascii
+import gio
+import glob
+import gtk
+import htmlentitydefs
+import os
+import re
+import shutil
+import time
+import urllib2
+import xml.dom.minidom
+
+import cons
+import machines
+import support
 
 
 def get_internal_link_from_http_url(link_url):
     """Get internal cherrytree link attribute from HTTP link url"""
-    if link_url[0:4] == "http": return "webs %s" % link_url
-    elif link_url[0:7] == "file://": return "file %s" % base64.b64encode(link_url[7:])
-    else: return "webs %s" % ("http://" + link_url)
+    if link_url[0:4] == "http":
+        return "webs %s" % link_url
+    elif link_url[0:7] == "file://":
+        return "file %s" % base64.b64encode(link_url[7:])
+    else:
+        return "webs %s" % ("http://" + link_url)
+
 
 def get_web_links_offsets_from_plain_text(plain_text):
     """Parse plain text for possible web links"""
@@ -39,13 +57,15 @@ def get_web_links_offsets_from_plain_text(plain_text):
     while start_offset < max_start_offset:
         if support.get_first_chars_of_string_at_offset_are(plain_text, start_offset, cons.WEB_LINK_STARTERS):
             end_offset = start_offset + 3
-            while (end_offset < max_end_offset)\
-            and (plain_text[end_offset] not in [cons.CHAR_SPACE, cons.CHAR_NEWLINE]):
+            while (end_offset < max_end_offset) \
+                    and (plain_text[end_offset] not in [cons.CHAR_SPACE, cons.CHAR_NEWLINE]):
                 end_offset += 1
             web_links.append([start_offset, end_offset])
             start_offset = end_offset + 1
-        else: start_offset += 1
+        else:
+            start_offset += 1
     return web_links
+
 
 def epim_html_file_to_hier_files(filepath):
     """From EPIM HTML File to Folder of HTML Files"""
@@ -79,28 +99,30 @@ def epim_html_file_to_hier_files(filepath):
                 elif html_row.startswith("</body></html>"):
                     curr_node_idx += 1
                     curr_state = 4
-                else: nodes_content[curr_node_idx] += html_row
-            else: break
+                else:
+                    nodes_content[curr_node_idx] += html_row
+            else:
+                break
     print len(nodes_levels), nodes_levels
     print len(nodes_names), nodes_names
     filedir, filename = os.path.split(filepath)
     dest_folder = [epim_dir]
-    for i,node_name in enumerate(nodes_names):
-        if i>0:
-            if nodes_levels[i] > nodes_levels[i-1]:
-                dest_folder.append(os.path.join(dest_folder[-1], nodes_names[i-1]))
+    for i, node_name in enumerate(nodes_names):
+        if i > 0:
+            if nodes_levels[i] > nodes_levels[i - 1]:
+                dest_folder.append(os.path.join(dest_folder[-1], nodes_names[i - 1]))
                 print dest_folder[-1]
-            elif nodes_levels[i] < nodes_levels[i-1]:
-                for back_jumps in range(nodes_levels[i-1] - nodes_levels[i]):
+            elif nodes_levels[i] < nodes_levels[i - 1]:
+                for back_jumps in range(nodes_levels[i - 1] - nodes_levels[i]):
                     dest_folder.pop()
         if not os.path.isdir(dest_folder[-1]):
             os.makedirs(dest_folder[-1])
             for filepath_to_cpy in glob.glob(os.path.join(filedir, "*")):
                 if filepath_to_cpy == filepath: continue
                 shutil.copy(filepath_to_cpy, dest_folder[-1])
-        dest_filepath = os.path.join(dest_folder[-1], support.clean_from_chars_not_for_filename(node_name)+".htm")
+        dest_filepath = os.path.join(dest_folder[-1], support.clean_from_chars_not_for_filename(node_name) + ".htm")
         with open(dest_filepath, 'w') as fd:
-            fd.write(html_prefix+nodes_content[i]+"</body></html>")
+            fd.write(html_prefix + nodes_content[i] + "</body></html>")
     return epim_dir
 
 
@@ -127,8 +149,10 @@ class LeoHandler:
                 tnode_dom_iter = child_dom_iter.firstChild
                 while tnode_dom_iter:
                     if tnode_dom_iter.nodeName == "t":
-                        if tnode_dom_iter.firstChild: fill_text = tnode_dom_iter.firstChild.data
-                        else: fill_text = ""
+                        if tnode_dom_iter.firstChild:
+                            fill_text = tnode_dom_iter.firstChild.data
+                        else:
+                            fill_text = ""
                         self.tnodes_dict[tnode_dom_iter.attributes['tx'].value] = fill_text
                     tnode_dom_iter = tnode_dom_iter.nextSibling
             child_dom_iter = child_dom_iter.nextSibling
@@ -139,7 +163,7 @@ class LeoHandler:
     def rich_text_serialize(self, text_data):
         """Appends a new part to the XML rich text"""
         dom_iter = self.dom.createElement("rich_text")
-        #for tag_property in cons.TAG_PROPERTIES:
+        # for tag_property in cons.TAG_PROPERTIES:
         #   if self.curr_attributes[tag_property] != "":
         #      dom_iter.setAttribute(tag_property, self.curr_attributes[tag_property])
         self.nodes_list[-1].appendChild(dom_iter)
@@ -158,7 +182,8 @@ class LeoHandler:
                 self.nodes_list[-1].setAttribute("prog_lang", cons.RICH_TEXT_ID)
                 self.nodes_list[-2].appendChild(self.nodes_list[-1])
                 self.rich_text_serialize(self.tnodes_dict[vnode_dom_iter.attributes['t'].value])
-            elif child_dom_iter.nodeName == "v": self.append_leo_node(child_dom_iter)
+            elif child_dom_iter.nodeName == "v":
+                self.append_leo_node(child_dom_iter)
             child_dom_iter = child_dom_iter.nextSibling
         self.nodes_list.pop()
 
@@ -209,14 +234,18 @@ class TuxCardsHandler(HTMLParser.HTMLParser):
         self.nodes_list.append(self.dom.createElement("node"))
         while child_dom_iter:
             if child_dom_iter.nodeName == "Description":
-                if child_dom_iter.firstChild: node_name = child_dom_iter.firstChild.data
-                else: node_name = ""
+                if child_dom_iter.firstChild:
+                    node_name = child_dom_iter.firstChild.data
+                else:
+                    node_name = ""
                 self.nodes_list[-1].setAttribute("name", node_name)
                 self.nodes_list[-1].setAttribute("prog_lang", cons.RICH_TEXT_ID)
                 self.nodes_list[-2].appendChild(self.nodes_list[-1])
             elif child_dom_iter.nodeName == "Information":
-                if child_dom_iter.firstChild: node_string = child_dom_iter.firstChild.data
-                else: node_string = ""
+                if child_dom_iter.firstChild:
+                    node_string = child_dom_iter.firstChild.data
+                else:
+                    node_string = ""
                 self.curr_state = 0
                 # curr_state 0: standby, taking no data
                 # curr_state 1: waiting for node content, take many data
@@ -234,11 +263,14 @@ class TuxCardsHandler(HTMLParser.HTMLParser):
         """Encountered the beginning of a tag"""
         if self.curr_state == 0:
             if tag == "body": self.curr_state = 1
-        else: # self.curr_state == 1
+        else:  # self.curr_state == 1
             if tag == "span" and attrs[0][0] == cons.TAG_STYLE:
-                if "font-weight" in attrs[0][1]: self.curr_attributes[cons.TAG_WEIGHT] = cons.TAG_PROP_HEAVY
-                elif "font-style" in attrs[0][1] and cons.TAG_PROP_ITALIC in attrs[0][1]: self.curr_attributes[cons.TAG_STYLE] = cons.TAG_PROP_ITALIC
-                elif "text-decoration" in attrs[0][1] and cons.TAG_UNDERLINE in attrs[0][1]: self.curr_attributes[cons.TAG_UNDERLINE] = cons.TAG_PROP_SINGLE
+                if "font-weight" in attrs[0][1]:
+                    self.curr_attributes[cons.TAG_WEIGHT] = cons.TAG_PROP_HEAVY
+                elif "font-style" in attrs[0][1] and cons.TAG_PROP_ITALIC in attrs[0][1]:
+                    self.curr_attributes[cons.TAG_STYLE] = cons.TAG_PROP_ITALIC
+                elif "text-decoration" in attrs[0][1] and cons.TAG_UNDERLINE in attrs[0][1]:
+                    self.curr_attributes[cons.TAG_UNDERLINE] = cons.TAG_PROP_SINGLE
                 elif "color" in attrs[0][1]:
                     match = re.match("(?<=^).+:(.+);(?=$)", attrs[0][1])
                     if match != None: self.curr_attributes[cons.TAG_FOREGROUND] = match.group(1).strip()
@@ -260,21 +292,23 @@ class TuxCardsHandler(HTMLParser.HTMLParser):
                         pixbuf_loader.write(image_file)
                         pixbuf_loader.close()
                         pixbuf = pixbuf_loader.get_pixbuf()
-                    except: pass
+                    except:
+                        pass
                 if pixbuf:
                     self.pixbuf_vector.append([self.chars_counter, pixbuf, cons.TAG_PROP_LEFT])
                     self.chars_counter += 1
-                else: print "%s insert fail" % img_path
+                else:
+                    print "%s insert fail" % img_path
             elif tag == "br":
                 # this is a data block composed only by an endline
                 self.rich_text_serialize(cons.CHAR_NEWLINE)
                 self.chars_counter += 1
             elif tag == "hr":
                 # this is a data block composed only by an horizontal rule
-                self.rich_text_serialize(cons.CHAR_NEWLINE+self.dad.h_rule+cons.CHAR_NEWLINE)
-                self.chars_counter += len(self.dad.h_rule)+2
+                self.rich_text_serialize(cons.CHAR_NEWLINE + self.dad.h_rule + cons.CHAR_NEWLINE)
+                self.chars_counter += len(self.dad.h_rule) + 2
             elif tag == "li":
-                self.rich_text_serialize(cons.CHAR_NEWLINE+self.dad.chars_listbul[0]+cons.CHAR_SPACE)
+                self.rich_text_serialize(cons.CHAR_NEWLINE + self.dad.chars_listbul[0] + cons.CHAR_SPACE)
                 self.chars_counter += 3
 
     def handle_endtag(self, tag):
@@ -289,11 +323,12 @@ class TuxCardsHandler(HTMLParser.HTMLParser):
             self.curr_attributes[cons.TAG_STYLE] = ""
             self.curr_attributes[cons.TAG_UNDERLINE] = ""
             self.curr_attributes[cons.TAG_FOREGROUND] = ""
-        elif tag == "a": self.curr_attributes[cons.TAG_LINK] = ""
+        elif tag == "a":
+            self.curr_attributes[cons.TAG_LINK] = ""
 
     def handle_data(self, data):
         """Found Data"""
-        if self.curr_state == 0 or data in [cons.CHAR_NEWLINE, cons.CHAR_NEWLINE*2]: return
+        if self.curr_state == 0 or data in [cons.CHAR_NEWLINE, cons.CHAR_NEWLINE * 2]: return
         data = data.replace(cons.CHAR_NEWLINE, "")
         self.rich_text_serialize(data)
         self.chars_counter += len(data)
@@ -340,8 +375,8 @@ class KeepnoteHandler(HTMLParser.HTMLParser):
     def start_parsing(self):
         """Start the Parsing"""
         for element in reversed(os.listdir(self.folderpath)):
-            if os.path.isdir(os.path.join(self.folderpath, element))\
-            and element not in ["__TRASH__", "__NOTEBOOK__"]:
+            if os.path.isdir(os.path.join(self.folderpath, element)) \
+                    and element not in ["__TRASH__", "__NOTEBOOK__"]:
                 self.node_add(os.path.join(self.folderpath, element))
 
     def node_add(self, node_folder):
@@ -359,7 +394,8 @@ class KeepnoteHandler(HTMLParser.HTMLParser):
             except:
                 print "Error opening the file %s" % filepath
                 return
-        else: node_string = "" # empty node
+        else:
+            node_string = ""  # empty node
         self.curr_state = 0
         # curr_state 0: standby, taking no data
         # curr_state 1: waiting for node content, take many data
@@ -381,11 +417,15 @@ class KeepnoteHandler(HTMLParser.HTMLParser):
         """Encountered the beginning of a tag"""
         if self.curr_state == 0:
             if tag == "body": self.curr_state = 1
-        else: # self.curr_state == 1
-            if tag == "b": self.curr_attributes[cons.TAG_WEIGHT] = cons.TAG_PROP_HEAVY
-            elif tag == "i": self.curr_attributes[cons.TAG_STYLE] = cons.TAG_PROP_ITALIC
-            elif tag == "u": self.curr_attributes[cons.TAG_UNDERLINE] = cons.TAG_PROP_SINGLE
-            elif tag == "strike": self.curr_attributes[cons.TAG_STRIKETHROUGH] = cons.TAG_PROP_TRUE
+        else:  # self.curr_state == 1
+            if tag == "b":
+                self.curr_attributes[cons.TAG_WEIGHT] = cons.TAG_PROP_HEAVY
+            elif tag == "i":
+                self.curr_attributes[cons.TAG_STYLE] = cons.TAG_PROP_ITALIC
+            elif tag == "u":
+                self.curr_attributes[cons.TAG_UNDERLINE] = cons.TAG_PROP_SINGLE
+            elif tag == "strike":
+                self.curr_attributes[cons.TAG_STRIKETHROUGH] = cons.TAG_PROP_TRUE
             elif tag == "span" and attrs[0][0] == cons.TAG_STYLE:
                 match = re.match("(?<=^)(.+):(.+)(?=$)", attrs[0][1])
                 if match != None:
@@ -406,36 +446,44 @@ class KeepnoteHandler(HTMLParser.HTMLParser):
                     pixbuf = gtk.gdk.pixbuf_new_from_file(img_path)
                     self.pixbuf_vector.append([self.chars_counter, pixbuf, cons.TAG_PROP_LEFT])
                     self.chars_counter += 1
-                else: print "%s not found" % img_path
+                else:
+                    print "%s not found" % img_path
             elif tag == "br":
                 # this is a data block composed only by an endline
                 self.rich_text_serialize(cons.CHAR_NEWLINE)
                 self.chars_counter += 1
             elif tag == "hr":
                 # this is a data block composed only by an horizontal rule
-                self.rich_text_serialize(cons.CHAR_NEWLINE+self.dad.h_rule+cons.CHAR_NEWLINE)
-                self.chars_counter += len(self.dad.h_rule)+2
+                self.rich_text_serialize(cons.CHAR_NEWLINE + self.dad.h_rule + cons.CHAR_NEWLINE)
+                self.chars_counter += len(self.dad.h_rule) + 2
             elif tag == "li":
-                self.rich_text_serialize(cons.CHAR_NEWLINE+self.dad.chars_listbul[0]+cons.CHAR_SPACE)
+                self.rich_text_serialize(cons.CHAR_NEWLINE + self.dad.chars_listbul[0] + cons.CHAR_SPACE)
                 self.chars_counter += 3
 
     def handle_endtag(self, tag):
         """Encountered the end of a tag"""
         if self.curr_state == 0: return
-        if tag == "b": self.curr_attributes[cons.TAG_WEIGHT] = ""
-        elif tag == "i": self.curr_attributes[cons.TAG_STYLE] = ""
-        elif tag == "u": self.curr_attributes[cons.TAG_UNDERLINE] = ""
-        elif tag == "strike": self.curr_attributes[cons.TAG_STRIKETHROUGH] = ""
+        if tag == "b":
+            self.curr_attributes[cons.TAG_WEIGHT] = ""
+        elif tag == "i":
+            self.curr_attributes[cons.TAG_STYLE] = ""
+        elif tag == "u":
+            self.curr_attributes[cons.TAG_UNDERLINE] = ""
+        elif tag == "strike":
+            self.curr_attributes[cons.TAG_STRIKETHROUGH] = ""
         elif tag == "span":
             if self.latest_span:
-                if self.latest_span[-1] == cons.TAG_FOREGROUND: self.curr_attributes[cons.TAG_FOREGROUND] = ""
-                elif self.latest_span[-1] == cons.TAG_BACKGROUND: self.curr_attributes[cons.TAG_BACKGROUND] = ""
+                if self.latest_span[-1] == cons.TAG_FOREGROUND:
+                    self.curr_attributes[cons.TAG_FOREGROUND] = ""
+                elif self.latest_span[-1] == cons.TAG_BACKGROUND:
+                    self.curr_attributes[cons.TAG_BACKGROUND] = ""
                 del self.latest_span[-1]
-        elif tag == "a": self.curr_attributes[cons.TAG_LINK] = ""
+        elif tag == "a":
+            self.curr_attributes[cons.TAG_LINK] = ""
 
     def handle_data(self, data):
         """Found Data"""
-        if self.curr_state == 0 or data in [cons.CHAR_NEWLINE, cons.CHAR_NEWLINE*2]: return
+        if self.curr_state == 0 or data in [cons.CHAR_NEWLINE, cons.CHAR_NEWLINE * 2]: return
         data = data.replace(cons.CHAR_NEWLINE, "")
         self.rich_text_serialize(data)
         self.chars_counter += len(data)
@@ -499,24 +547,27 @@ class RedNotebookHandler():
         self.in_plain_link = False
         in_numbered_list = 0
         curr_pos = 0
-        wiki_string = wiki_string.replace(2*cons.CHAR_NEWLINE, cons.CHAR_NEWLINE)
-        wiki_string = wiki_string.replace(2*cons.CHAR_BSLASH, cons.CHAR_NEWLINE)
-        wiki_string = wiki_string.replace(2*cons.CHAR_SQUOTE, cons.CHAR_SQUOTE)
-        wiki_string = wiki_string.replace(cons.CHAR_NEWLINE+cons.CHAR_MINUS+cons.CHAR_SPACE, cons.CHAR_NEWLINE+self.dad.chars_listbul[0]+cons.CHAR_SPACE)
+        wiki_string = wiki_string.replace(2 * cons.CHAR_NEWLINE, cons.CHAR_NEWLINE)
+        wiki_string = wiki_string.replace(2 * cons.CHAR_BSLASH, cons.CHAR_NEWLINE)
+        wiki_string = wiki_string.replace(2 * cons.CHAR_SQUOTE, cons.CHAR_SQUOTE)
+        wiki_string = wiki_string.replace(cons.CHAR_NEWLINE + cons.CHAR_MINUS + cons.CHAR_SPACE,
+                                          cons.CHAR_NEWLINE + self.dad.chars_listbul[0] + cons.CHAR_SPACE)
         max_pos = len(wiki_string)
         self.wiki_slot = ""
+
         def wiki_slot_flush():
             if self.wiki_slot:
-                #print self.wiki_slot
+                # print self.wiki_slot
                 self.rich_text_serialize(self.wiki_slot)
                 self.wiki_slot = ""
+
         probably_url = False
         in_hN = [False, False, False, False, False]
         while curr_pos < max_pos:
-            curr_char = wiki_string[curr_pos:curr_pos+1]
-            next_char = wiki_string[curr_pos+1:curr_pos+2] if curr_pos+1 < max_pos else cons.CHAR_SPACE
-            third_char = wiki_string[curr_pos+2:curr_pos+3] if curr_pos+2 < max_pos else cons.CHAR_SPACE
-            fourth_char = wiki_string[curr_pos+3:curr_pos+4] if curr_pos+3 < max_pos else cons.CHAR_SPACE
+            curr_char = wiki_string[curr_pos:curr_pos + 1]
+            next_char = wiki_string[curr_pos + 1:curr_pos + 2] if curr_pos + 1 < max_pos else cons.CHAR_SPACE
+            third_char = wiki_string[curr_pos + 2:curr_pos + 3] if curr_pos + 2 < max_pos else cons.CHAR_SPACE
+            fourth_char = wiki_string[curr_pos + 3:curr_pos + 4] if curr_pos + 3 < max_pos else cons.CHAR_SPACE
 
             if curr_char == cons.CHAR_NEWLINE:
                 if next_char == "+" and third_char == cons.CHAR_SPACE:
@@ -538,17 +589,19 @@ class RedNotebookHandler():
                     self.in_plain_link = False
                 self.wiki_slot += curr_char
             elif self.in_image:
-                #[""file://...."".png]
+                # [""file://...."".png]
                 if curr_char == cons.CHAR_SQ_BR_CLOSE:
                     valid_image = False
-                    if self.wiki_slot.startswith("./"): self.wiki_slot = os.path.join(self.folderpath, self.wiki_slot[2:])
+                    if self.wiki_slot.startswith("./"): self.wiki_slot = os.path.join(self.folderpath,
+                                                                                      self.wiki_slot[2:])
                     if os.path.isfile(self.wiki_slot):
                         try:
                             pixbuf = gtk.gdk.pixbuf_new_from_file(self.wiki_slot)
                             self.pixbuf_vector.append([self.chars_counter, pixbuf, cons.TAG_PROP_LEFT])
                             self.chars_counter += 1
                             valid_image = True
-                        except: pass
+                        except:
+                            pass
                     if not valid_image: print "! error: '%s' is not a valid image" % self.wiki_slot
                     self.wiki_slot = ""
                     curr_pos += 1
@@ -556,16 +609,18 @@ class RedNotebookHandler():
                 elif not curr_char in [cons.CHAR_DQUOTE]:
                     self.wiki_slot += curr_char
             elif self.in_link:
-                #[rednotebook-1.12.tar.gz ""file:///home/giuspen/Downloads/rednotebook-1.12.tar.gz""]
-                #[Google ""http://google.com""]
+                # [rednotebook-1.12.tar.gz ""file:///home/giuspen/Downloads/rednotebook-1.12.tar.gz""]
+                # [Google ""http://google.com""]
                 if curr_char == cons.CHAR_SQ_BR_CLOSE:
                     if ' ""' in self.wiki_slot:
                         label_n_target = self.wiki_slot.split(' ""')
                         if len(label_n_target) == 2:
                             exp_filepath = label_n_target[1].replace(cons.CHAR_DQUOTE, "").replace("file://", "")
-                            if exp_filepath.startswith("./"): exp_filepath = os.path.join(self.folderpath, exp_filepath[2:])
-                            if exp_filepath.startswith("http") or exp_filepath.startswith("ftp") or exp_filepath.startswith("www.")\
-                            and not cons.CHAR_SPACE in exp_filepath:
+                            if exp_filepath.startswith("./"): exp_filepath = os.path.join(self.folderpath,
+                                                                                          exp_filepath[2:])
+                            if exp_filepath.startswith("http") or exp_filepath.startswith(
+                                    "ftp") or exp_filepath.startswith("www.") \
+                                    and not cons.CHAR_SPACE in exp_filepath:
                                 self.curr_attributes[cons.TAG_LINK] = "webs %s" % exp_filepath
                                 self.rich_text_serialize(label_n_target[0])
                                 self.curr_attributes[cons.TAG_LINK] = ""
@@ -578,11 +633,14 @@ class RedNotebookHandler():
                             self.wiki_slot = ""
                             curr_pos += 1
                     self.in_link = False
-                else: self.wiki_slot += curr_char
+                else:
+                    self.wiki_slot += curr_char
             elif curr_char == cons.CHAR_STAR and next_char == cons.CHAR_STAR:
                 wiki_slot_flush()
-                if self.curr_attributes[cons.TAG_WEIGHT]: self.curr_attributes[cons.TAG_WEIGHT] = ""
-                else: self.curr_attributes[cons.TAG_WEIGHT] = cons.TAG_PROP_HEAVY
+                if self.curr_attributes[cons.TAG_WEIGHT]:
+                    self.curr_attributes[cons.TAG_WEIGHT] = ""
+                else:
+                    self.curr_attributes[cons.TAG_WEIGHT] = cons.TAG_PROP_HEAVY
                 curr_pos += 1
             elif curr_char == cons.CHAR_SLASH and next_char == cons.CHAR_SLASH:
                 if probably_url:
@@ -590,23 +648,31 @@ class RedNotebookHandler():
                     curr_pos += 1
                     continue
                 wiki_slot_flush()
-                if self.curr_attributes[cons.TAG_STYLE]: self.curr_attributes[cons.TAG_STYLE] = ""
-                else: self.curr_attributes[cons.TAG_STYLE] = cons.TAG_PROP_ITALIC
+                if self.curr_attributes[cons.TAG_STYLE]:
+                    self.curr_attributes[cons.TAG_STYLE] = ""
+                else:
+                    self.curr_attributes[cons.TAG_STYLE] = cons.TAG_PROP_ITALIC
                 curr_pos += 1
             elif curr_char == cons.CHAR_USCORE and next_char == cons.CHAR_USCORE:
                 wiki_slot_flush()
-                if self.curr_attributes[cons.TAG_UNDERLINE]: self.curr_attributes[cons.TAG_UNDERLINE] = ""
-                else: self.curr_attributes[cons.TAG_UNDERLINE] = cons.TAG_PROP_SINGLE
+                if self.curr_attributes[cons.TAG_UNDERLINE]:
+                    self.curr_attributes[cons.TAG_UNDERLINE] = ""
+                else:
+                    self.curr_attributes[cons.TAG_UNDERLINE] = cons.TAG_PROP_SINGLE
                 curr_pos += 1
             elif curr_char == cons.CHAR_MINUS and next_char == cons.CHAR_MINUS:
                 wiki_slot_flush()
-                if self.curr_attributes[cons.TAG_STRIKETHROUGH]: self.curr_attributes[cons.TAG_STRIKETHROUGH] = ""
-                else: self.curr_attributes[cons.TAG_STRIKETHROUGH] = cons.TAG_PROP_TRUE
+                if self.curr_attributes[cons.TAG_STRIKETHROUGH]:
+                    self.curr_attributes[cons.TAG_STRIKETHROUGH] = ""
+                else:
+                    self.curr_attributes[cons.TAG_STRIKETHROUGH] = cons.TAG_PROP_TRUE
                 curr_pos += 1
             elif curr_char == cons.CHAR_GRAVE and next_char == cons.CHAR_GRAVE:
                 wiki_slot_flush()
-                if self.curr_attributes[cons.TAG_FAMILY]: self.curr_attributes[cons.TAG_FAMILY] = ""
-                else: self.curr_attributes[cons.TAG_FAMILY] = cons.TAG_PROP_MONOSPACE
+                if self.curr_attributes[cons.TAG_FAMILY]:
+                    self.curr_attributes[cons.TAG_FAMILY] = ""
+                else:
+                    self.curr_attributes[cons.TAG_FAMILY] = cons.TAG_PROP_MONOSPACE
                 curr_pos += 1
             elif curr_char == 'h' and next_char == 't' and third_char == 't' and fourth_char == 'p':
                 wiki_slot_flush()
@@ -618,67 +684,81 @@ class RedNotebookHandler():
                 self.curr_attributes[cons.TAG_SCALE] = cons.TAG_PROP_H1
                 curr_pos += 1
                 in_hN[0] = True
-                #print "H1sta"
+                # print "H1sta"
             elif in_hN[0] and curr_char == cons.CHAR_SPACE and next_char == cons.CHAR_EQUAL:
                 wiki_slot_flush()
                 self.curr_attributes[cons.TAG_SCALE] = ""
                 curr_pos += 1
                 in_hN[0] = False
-                #print "H1end"
+                # print "H1end"
             ## ==
-            elif not in_hN[1] and curr_char == cons.CHAR_EQUAL and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_SPACE:
+            elif not in_hN[
+                1] and curr_char == cons.CHAR_EQUAL and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_SPACE:
                 wiki_slot_flush()
                 self.curr_attributes[cons.TAG_SCALE] = cons.TAG_PROP_H2
                 curr_pos += 2
                 in_hN[1] = True
-                #print "H2sta"
-            elif in_hN[1] and curr_char == cons.CHAR_SPACE and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL:
+                # print "H2sta"
+            elif in_hN[
+                1] and curr_char == cons.CHAR_SPACE and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL:
                 wiki_slot_flush()
                 self.curr_attributes[cons.TAG_SCALE] = ""
                 curr_pos += 2
                 in_hN[1] = False
-                #print "H2end"
+                # print "H2end"
             ## ===
-            elif not in_hN[2] and curr_char == cons.CHAR_EQUAL and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_SPACE:
+            elif not in_hN[
+                2] and curr_char == cons.CHAR_EQUAL and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_SPACE:
                 wiki_slot_flush()
                 self.curr_attributes[cons.TAG_SCALE] = cons.TAG_PROP_H3
                 curr_pos += 3
                 in_hN[2] = True
-                #print "H3sta"
-            elif in_hN[2] and curr_char == cons.CHAR_SPACE and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_EQUAL:
+                # print "H3sta"
+            elif in_hN[
+                2] and curr_char == cons.CHAR_SPACE and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_EQUAL:
                 wiki_slot_flush()
                 self.curr_attributes[cons.TAG_SCALE] = ""
                 curr_pos += 3
                 in_hN[2] = False
-                #print "H3end"
+                # print "H3end"
             ## ====
-            elif not in_hN[3] and curr_pos+4 < max_pos and curr_char == cons.CHAR_EQUAL and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_EQUAL and wiki_string[curr_pos+4:curr_pos+5] == cons.CHAR_SPACE:
+            elif not in_hN[
+                3] and curr_pos + 4 < max_pos and curr_char == cons.CHAR_EQUAL and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_EQUAL and wiki_string[
+                                                                                                                                                                                         curr_pos + 4:curr_pos + 5] == cons.CHAR_SPACE:
                 wiki_slot_flush()
                 self.curr_attributes[cons.TAG_SCALE] = cons.TAG_PROP_H3
                 curr_pos += 4
                 in_hN[3] = True
-                #print "H4sta"
-            elif curr_pos+4 < max_pos and in_hN[3] and curr_char == cons.CHAR_SPACE and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_EQUAL and wiki_string[curr_pos+4:curr_pos+5] == cons.CHAR_EQUAL:
+                # print "H4sta"
+            elif curr_pos + 4 < max_pos and in_hN[
+                3] and curr_char == cons.CHAR_SPACE and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_EQUAL and wiki_string[
+                                                                                                                                                              curr_pos + 4:curr_pos + 5] == cons.CHAR_EQUAL:
                 wiki_slot_flush()
                 self.curr_attributes[cons.TAG_SCALE] = ""
                 curr_pos += 4
                 in_hN[3] = False
-                #print "H4end"
+                # print "H4end"
             # =====
-            elif not in_hN[4] and curr_pos+5 < max_pos and curr_char == cons.CHAR_EQUAL and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_EQUAL and wiki_string[curr_pos+4:curr_pos+6] == (cons.CHAR_EQUAL+cons.CHAR_SPACE):
+            elif not in_hN[
+                4] and curr_pos + 5 < max_pos and curr_char == cons.CHAR_EQUAL and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_EQUAL and wiki_string[
+                                                                                                                                                                                         curr_pos + 4:curr_pos + 6] == (
+                        cons.CHAR_EQUAL + cons.CHAR_SPACE):
                 wiki_slot_flush()
                 self.curr_attributes[cons.TAG_SCALE] = cons.TAG_PROP_H3
                 curr_pos += 5
                 in_hN[4] = True
-                #print "H5sta"
-            elif curr_pos+5 < max_pos and in_hN[4] and curr_char == cons.CHAR_SPACE and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_EQUAL and wiki_string[curr_pos+4:curr_pos+6] == 2*cons.CHAR_EQUAL:
+                # print "H5sta"
+            elif curr_pos + 5 < max_pos and in_hN[
+                4] and curr_char == cons.CHAR_SPACE and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_EQUAL and wiki_string[
+                                                                                                                                                              curr_pos + 4:curr_pos + 6] == 2 * cons.CHAR_EQUAL:
                 wiki_slot_flush()
                 self.curr_attributes[cons.TAG_SCALE] = ""
                 curr_pos += 5
                 in_hN[4] = False
-                #print "H5end"
+                # print "H5end"
             #
-            elif curr_char == cons.CHAR_SQ_BR_OPEN and next_char == cons.CHAR_DQUOTE and third_char == cons.CHAR_DQUOTE and curr_pos+9 < max_pos and wiki_string[curr_pos+3:curr_pos+10] == "file://":
+            elif curr_char == cons.CHAR_SQ_BR_OPEN and next_char == cons.CHAR_DQUOTE and third_char == cons.CHAR_DQUOTE and curr_pos + 9 < max_pos and wiki_string[
+                                                                                                                                                       curr_pos + 3:curr_pos + 10] == "file://":
                 wiki_slot_flush()
                 curr_pos += 9
                 self.in_image = True
@@ -687,7 +767,7 @@ class RedNotebookHandler():
                 self.in_link = True
             else:
                 self.wiki_slot += curr_char
-                #print self.wiki_slot
+                # print self.wiki_slot
                 if curr_char == ":" and next_char == cons.CHAR_SLASH:
                     probably_url = True
                 elif curr_char in [cons.CHAR_SPACE, cons.CHAR_NEWLINE]:
@@ -703,18 +783,21 @@ class RedNotebookHandler():
         self.nodes_list[-2].appendChild(self.nodes_list[-1])
         with open(os.path.join(self.folderpath, filename), "r") as fd:
             month_list = []
+
             def clean_markdown_start():
                 if month_list[-1]["md"].startswith(cons.CHAR_SQUOTE):
                     month_list[-1]["md"] = month_list[-1]["md"][1:]
+
             def clean_markdown_end():
                 if month_list:
-                    if month_list[-1]["md"].endswith(cons.CHAR_SQUOTE+cons.CHAR_BR_CLOSE):
+                    if month_list[-1]["md"].endswith(cons.CHAR_SQUOTE + cons.CHAR_BR_CLOSE):
                         month_list[-1]["md"] = month_list[-1]["md"][:-2]
                     elif month_list[-1]["md"].endswith(cons.CHAR_BR_CLOSE):
                         month_list[-1]["md"] = month_list[-1]["md"][:-1]
                     else:
                         print "!! unexpected md end"
                         print month_list[-1]["md"]
+
             for text_line in fd:
                 text_line = text_line.replace(cons.CHAR_NEWLINE, "").replace(cons.CHAR_CR, "")
                 ret_match = re.search("^(\d+):\s{text:\s(.+)$", text_line)
@@ -724,8 +807,8 @@ class RedNotebookHandler():
                     month_list.append({"day": ret_match.group(1), "md": ret_match.group(2)})
                     clean_markdown_start()
                 else:
-                    curr_line = text_line if not text_line.startswith(4*cons.CHAR_SPACE) else text_line[4:]
-                    curr_line = curr_line.replace(2*cons.CHAR_SQUOTE, cons.CHAR_SQUOTE)
+                    curr_line = text_line if not text_line.startswith(4 * cons.CHAR_SPACE) else text_line[4:]
+                    curr_line = curr_line.replace(2 * cons.CHAR_SQUOTE, cons.CHAR_SQUOTE)
                     month_list[-1]["md"] += cons.CHAR_NEWLINE + curr_line
             clean_markdown_end()
             for month_element in month_list:
@@ -770,7 +853,7 @@ class ZimHandler():
         """Start the Parsing"""
         for element in os.listdir(curr_folder):
             if len(element) > 4 and element[-4:] == ".txt" \
-            and os.path.isfile(os.path.join(curr_folder, element)):
+                    and os.path.isfile(os.path.join(curr_folder, element)):
                 file_descriptor = open(os.path.join(curr_folder, element), 'r')
                 wiki_string = file_descriptor.read()
                 file_descriptor.close()
@@ -805,23 +888,27 @@ class ZimHandler():
         self.in_table = False
         curr_pos = 0
         wiki_string = wiki_string.replace(cons.CHAR_CR, "")
-        wiki_string = wiki_string.replace(cons.CHAR_NEWLINE+cons.CHAR_STAR+cons.CHAR_SPACE, cons.CHAR_NEWLINE+self.dad.chars_listbul[0]+cons.CHAR_SPACE)
-        wiki_string = wiki_string.replace(cons.CHAR_TAB+cons.CHAR_STAR+cons.CHAR_SPACE, cons.CHAR_TAB+self.dad.chars_listbul[0]+cons.CHAR_SPACE)
+        wiki_string = wiki_string.replace(cons.CHAR_NEWLINE + cons.CHAR_STAR + cons.CHAR_SPACE,
+                                          cons.CHAR_NEWLINE + self.dad.chars_listbul[0] + cons.CHAR_SPACE)
+        wiki_string = wiki_string.replace(cons.CHAR_TAB + cons.CHAR_STAR + cons.CHAR_SPACE,
+                                          cons.CHAR_TAB + self.dad.chars_listbul[0] + cons.CHAR_SPACE)
         max_pos = len(wiki_string)
         newline_count = 0
         self.wiki_slot = ""
+
         def wiki_slot_flush():
             if self.wiki_slot:
-                #print self.wiki_slot
+                # print self.wiki_slot
                 self.rich_text_serialize(self.wiki_slot)
                 self.wiki_slot = ""
+
         probably_url = False
         in_hN = [False, False, False, False, False]
         while curr_pos < max_pos:
-            curr_char = wiki_string[curr_pos:curr_pos+1]
-            next_char = wiki_string[curr_pos+1:curr_pos+2] if curr_pos+1 < max_pos else cons.CHAR_SPACE
-            third_char = wiki_string[curr_pos+2:curr_pos+3] if curr_pos+2 < max_pos else cons.CHAR_SPACE
-            fourth_char = wiki_string[curr_pos+3:curr_pos+4] if curr_pos+3 < max_pos else cons.CHAR_SPACE
+            curr_char = wiki_string[curr_pos:curr_pos + 1]
+            next_char = wiki_string[curr_pos + 1:curr_pos + 2] if curr_pos + 1 < max_pos else cons.CHAR_SPACE
+            third_char = wiki_string[curr_pos + 2:curr_pos + 3] if curr_pos + 2 < max_pos else cons.CHAR_SPACE
+            fourth_char = wiki_string[curr_pos + 3:curr_pos + 4] if curr_pos + 3 < max_pos else cons.CHAR_SPACE
             if newline_count < 4:
                 if curr_char == cons.CHAR_NEWLINE: newline_count += 1
             else:
@@ -831,7 +918,8 @@ class ZimHandler():
                         self.curr_attributes[cons.TAG_FAMILY] = ""
                         curr_pos += 2
                         self.in_block = False
-                    else: self.wiki_slot += curr_char
+                    else:
+                        self.wiki_slot += curr_char
                 elif self.in_plain_link:
                     if curr_char in [cons.CHAR_SPACE, cons.CHAR_NEWLINE]:
                         self.curr_attributes[cons.TAG_LINK] = "webs %s" % self.wiki_slot
@@ -845,14 +933,16 @@ class ZimHandler():
                         if cons.CHAR_QUESTION in self.wiki_slot:
                             splitted_wiki_slot = self.wiki_slot.split(cons.CHAR_QUESTION)
                             self.wiki_slot = splitted_wiki_slot[0]
-                        if self.wiki_slot.startswith("./"): self.wiki_slot = os.path.join(curr_folder, node_name, self.wiki_slot[2:])
+                        if self.wiki_slot.startswith("./"): self.wiki_slot = os.path.join(curr_folder, node_name,
+                                                                                          self.wiki_slot[2:])
                         if os.path.isfile(self.wiki_slot):
                             try:
                                 pixbuf = gtk.gdk.pixbuf_new_from_file(self.wiki_slot)
                                 self.pixbuf_vector.append([self.chars_counter, pixbuf, cons.TAG_PROP_LEFT])
                                 self.chars_counter += 1
                                 valid_image = True
-                            except: pass
+                            except:
+                                pass
                         if not valid_image: print "! error: '%s' is not a valid image" % self.wiki_slot
                         self.wiki_slot = ""
                         curr_pos += 1
@@ -863,9 +953,11 @@ class ZimHandler():
                         else:
                             target_n_label = [self.wiki_slot, self.wiki_slot]
                         exp_filepath = target_n_label[0]
-                        if exp_filepath.startswith("./"): exp_filepath = os.path.join(curr_folder, node_name, exp_filepath[2:])
-                        if exp_filepath.startswith("http") or exp_filepath.startswith("ftp") or exp_filepath.startswith("www.")\
-                        and not cons.CHAR_SPACE in exp_filepath:
+                        if exp_filepath.startswith("./"): exp_filepath = os.path.join(curr_folder, node_name,
+                                                                                      exp_filepath[2:])
+                        if exp_filepath.startswith("http") or exp_filepath.startswith("ftp") or exp_filepath.startswith(
+                                "www.") \
+                                and not cons.CHAR_SPACE in exp_filepath:
                             self.curr_attributes[cons.TAG_LINK] = "webs %s" % exp_filepath
                             self.rich_text_serialize(target_n_label[1])
                             self.curr_attributes[cons.TAG_LINK] = ""
@@ -877,16 +969,19 @@ class ZimHandler():
                             self.links_to_node_list.append({'name_dest': target_n_label[0],
                                                             'node_source': node_name,
                                                             'char_start': self.chars_counter,
-                                                            'char_end': self.chars_counter+len(target_n_label[1])})
+                                                            'char_end': self.chars_counter + len(target_n_label[1])})
                             self.rich_text_serialize(target_n_label[1])
                         self.wiki_slot = ""
                         curr_pos += 1
                         self.in_link = False
-                    else: self.wiki_slot += curr_char
+                    else:
+                        self.wiki_slot += curr_char
                 elif curr_char == cons.CHAR_STAR and next_char == cons.CHAR_STAR:
                     wiki_slot_flush()
-                    if self.curr_attributes[cons.TAG_WEIGHT]: self.curr_attributes[cons.TAG_WEIGHT] = ""
-                    else: self.curr_attributes[cons.TAG_WEIGHT] = cons.TAG_PROP_HEAVY
+                    if self.curr_attributes[cons.TAG_WEIGHT]:
+                        self.curr_attributes[cons.TAG_WEIGHT] = ""
+                    else:
+                        self.curr_attributes[cons.TAG_WEIGHT] = cons.TAG_PROP_HEAVY
                     curr_pos += 1
                 elif curr_char == cons.CHAR_SLASH and next_char == cons.CHAR_SLASH:
                     if probably_url:
@@ -894,96 +989,123 @@ class ZimHandler():
                         curr_pos += 1
                         continue
                     wiki_slot_flush()
-                    if self.curr_attributes[cons.TAG_STYLE]: self.curr_attributes[cons.TAG_STYLE] = ""
-                    else: self.curr_attributes[cons.TAG_STYLE] = cons.TAG_PROP_ITALIC
+                    if self.curr_attributes[cons.TAG_STYLE]:
+                        self.curr_attributes[cons.TAG_STYLE] = ""
+                    else:
+                        self.curr_attributes[cons.TAG_STYLE] = cons.TAG_PROP_ITALIC
                     curr_pos += 1
                 elif curr_char == cons.CHAR_USCORE and next_char == cons.CHAR_USCORE:
                     wiki_slot_flush()
-                    if self.curr_attributes[cons.TAG_UNDERLINE]: self.curr_attributes[cons.TAG_UNDERLINE] = ""
-                    else: self.curr_attributes[cons.TAG_UNDERLINE] = cons.TAG_PROP_SINGLE
+                    if self.curr_attributes[cons.TAG_UNDERLINE]:
+                        self.curr_attributes[cons.TAG_UNDERLINE] = ""
+                    else:
+                        self.curr_attributes[cons.TAG_UNDERLINE] = cons.TAG_PROP_SINGLE
                     curr_pos += 1
                 elif curr_char == cons.CHAR_TILDE and next_char == cons.CHAR_TILDE:
                     wiki_slot_flush()
-                    if self.curr_attributes[cons.TAG_STRIKETHROUGH]: self.curr_attributes[cons.TAG_STRIKETHROUGH] = ""
-                    else: self.curr_attributes[cons.TAG_STRIKETHROUGH] = cons.TAG_PROP_TRUE
+                    if self.curr_attributes[cons.TAG_STRIKETHROUGH]:
+                        self.curr_attributes[cons.TAG_STRIKETHROUGH] = ""
+                    else:
+                        self.curr_attributes[cons.TAG_STRIKETHROUGH] = cons.TAG_PROP_TRUE
                     curr_pos += 1
                 elif curr_char == cons.CHAR_SQUOTE and next_char == cons.CHAR_SQUOTE:
                     wiki_slot_flush()
-                    if self.curr_attributes[cons.TAG_FAMILY]: self.curr_attributes[cons.TAG_FAMILY] = ""
-                    else: self.curr_attributes[cons.TAG_FAMILY] = cons.TAG_PROP_MONOSPACE
+                    if self.curr_attributes[cons.TAG_FAMILY]:
+                        self.curr_attributes[cons.TAG_FAMILY] = ""
+                    else:
+                        self.curr_attributes[cons.TAG_FAMILY] = cons.TAG_PROP_MONOSPACE
                     if third_char == cons.CHAR_SQUOTE:
                         curr_pos += 2
                         self.in_block = True if self.curr_attributes[cons.TAG_FAMILY] else False
-                    else: curr_pos += 1
+                    else:
+                        curr_pos += 1
                 elif curr_char == 'h' and next_char == 't' and third_char == 't' and fourth_char == 'p':
                     wiki_slot_flush()
                     self.wiki_slot += curr_char
                     self.in_plain_link = True
                 # ==
-                elif not in_hN[4] and curr_char == cons.CHAR_EQUAL and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_SPACE:
+                elif not in_hN[
+                    4] and curr_char == cons.CHAR_EQUAL and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_SPACE:
                     wiki_slot_flush()
                     self.curr_attributes[cons.TAG_SCALE] = cons.TAG_PROP_H3
                     curr_pos += 2
                     in_hN[4] = True
-                    #print "H5sta"
-                elif in_hN[4] and curr_char == cons.CHAR_SPACE and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL:
+                    # print "H5sta"
+                elif in_hN[
+                    4] and curr_char == cons.CHAR_SPACE and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL:
                     wiki_slot_flush()
                     self.curr_attributes[cons.TAG_SCALE] = ""
                     curr_pos += 2
                     in_hN[4] = False
-                    #print "H5end"
+                    # print "H5end"
                 ## ===
-                elif not in_hN[3] and curr_char == cons.CHAR_EQUAL and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_SPACE:
+                elif not in_hN[
+                    3] and curr_char == cons.CHAR_EQUAL and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_SPACE:
                     wiki_slot_flush()
                     self.curr_attributes[cons.TAG_SCALE] = cons.TAG_PROP_H3
                     curr_pos += 3
                     in_hN[3] = True
-                    #print "H4sta"
-                elif in_hN[3] and curr_char == cons.CHAR_SPACE and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_EQUAL:
+                    # print "H4sta"
+                elif in_hN[
+                    3] and curr_char == cons.CHAR_SPACE and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_EQUAL:
                     wiki_slot_flush()
                     self.curr_attributes[cons.TAG_SCALE] = ""
                     curr_pos += 3
                     in_hN[3] = False
-                    #print "H4end"
+                    # print "H4end"
                 ## ====
-                elif not in_hN[2] and curr_pos+4 < max_pos and curr_char == cons.CHAR_EQUAL and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_EQUAL and wiki_string[curr_pos+4:curr_pos+5] == cons.CHAR_SPACE:
+                elif not in_hN[
+                    2] and curr_pos + 4 < max_pos and curr_char == cons.CHAR_EQUAL and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_EQUAL and wiki_string[
+                                                                                                                                                                                             curr_pos + 4:curr_pos + 5] == cons.CHAR_SPACE:
                     wiki_slot_flush()
                     self.curr_attributes[cons.TAG_SCALE] = cons.TAG_PROP_H3
                     curr_pos += 4
                     in_hN[2] = True
-                    #print "H3sta"
-                elif curr_pos+4 < max_pos and in_hN[2] and curr_char == cons.CHAR_SPACE and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_EQUAL and wiki_string[curr_pos+4:curr_pos+5] == cons.CHAR_EQUAL:
+                    # print "H3sta"
+                elif curr_pos + 4 < max_pos and in_hN[
+                    2] and curr_char == cons.CHAR_SPACE and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_EQUAL and wiki_string[
+                                                                                                                                                                  curr_pos + 4:curr_pos + 5] == cons.CHAR_EQUAL:
                     wiki_slot_flush()
                     self.curr_attributes[cons.TAG_SCALE] = ""
                     curr_pos += 4
                     in_hN[2] = False
-                    #print "H3end"
+                    # print "H3end"
                 ## =====
-                elif not in_hN[1] and curr_pos+5 < max_pos and curr_char == cons.CHAR_EQUAL and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_EQUAL and wiki_string[curr_pos+4:curr_pos+6] == (cons.CHAR_EQUAL+cons.CHAR_SPACE):
+                elif not in_hN[
+                    1] and curr_pos + 5 < max_pos and curr_char == cons.CHAR_EQUAL and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_EQUAL and wiki_string[
+                                                                                                                                                                                             curr_pos + 4:curr_pos + 6] == (
+                            cons.CHAR_EQUAL + cons.CHAR_SPACE):
                     wiki_slot_flush()
                     self.curr_attributes[cons.TAG_SCALE] = cons.TAG_PROP_H2
                     curr_pos += 5
                     in_hN[1] = True
-                    #print "H2sta"
-                elif curr_pos+5 < max_pos and in_hN[1] and curr_char == cons.CHAR_SPACE and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_EQUAL and wiki_string[curr_pos+4:curr_pos+6] == 2*cons.CHAR_EQUAL:
+                    # print "H2sta"
+                elif curr_pos + 5 < max_pos and in_hN[
+                    1] and curr_char == cons.CHAR_SPACE and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_EQUAL and wiki_string[
+                                                                                                                                                                  curr_pos + 4:curr_pos + 6] == 2 * cons.CHAR_EQUAL:
                     wiki_slot_flush()
                     self.curr_attributes[cons.TAG_SCALE] = ""
                     curr_pos += 5
                     in_hN[1] = False
-                    #print "H2end"
+                    # print "H2end"
                 # ======
-                elif not in_hN[0] and curr_pos+6 < max_pos and curr_char == cons.CHAR_EQUAL and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_EQUAL and wiki_string[curr_pos+4:curr_pos+7] == (2*cons.CHAR_EQUAL+cons.CHAR_SPACE):
+                elif not in_hN[
+                    0] and curr_pos + 6 < max_pos and curr_char == cons.CHAR_EQUAL and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_EQUAL and wiki_string[
+                                                                                                                                                                                             curr_pos + 4:curr_pos + 7] == (
+                                2 * cons.CHAR_EQUAL + cons.CHAR_SPACE):
                     wiki_slot_flush()
                     self.curr_attributes[cons.TAG_SCALE] = cons.TAG_PROP_H1
                     curr_pos += 6
                     in_hN[0] = True
-                    #print "H1sta"
-                elif curr_pos+6 < max_pos and in_hN[0] and curr_char == cons.CHAR_SPACE and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_EQUAL and wiki_string[curr_pos+4:curr_pos+7] == 3*cons.CHAR_EQUAL:
+                    # print "H1sta"
+                elif curr_pos + 6 < max_pos and in_hN[
+                    0] and curr_char == cons.CHAR_SPACE and next_char == cons.CHAR_EQUAL and third_char == cons.CHAR_EQUAL and fourth_char == cons.CHAR_EQUAL and wiki_string[
+                                                                                                                                                                  curr_pos + 4:curr_pos + 7] == 3 * cons.CHAR_EQUAL:
                     wiki_slot_flush()
                     self.curr_attributes[cons.TAG_SCALE] = ""
                     curr_pos += 6
                     in_hN[0] = False
-                    #print "H1end"
+                    # print "H1end"
                 #
                 elif curr_char == cons.CHAR_CARET and next_char == cons.CHAR_BR_OPEN:
                     wiki_slot_flush()
@@ -993,20 +1115,24 @@ class ZimHandler():
                     wiki_slot_flush()
                     self.curr_attributes[cons.TAG_SCALE] = cons.TAG_PROP_SUB
                     curr_pos += 1
-                elif curr_char == cons.CHAR_BR_CLOSE and self.curr_attributes[cons.TAG_SCALE] in [cons.TAG_PROP_SUP, cons.TAG_PROP_SUB]:
+                elif curr_char == cons.CHAR_BR_CLOSE and self.curr_attributes[cons.TAG_SCALE] in [cons.TAG_PROP_SUP,
+                                                                                                  cons.TAG_PROP_SUB]:
                     wiki_slot_flush()
                     self.curr_attributes[cons.TAG_SCALE] = ""
                 elif curr_char == cons.CHAR_BR_OPEN and next_char == cons.CHAR_BR_OPEN \
-                  or curr_char == cons.CHAR_SQ_BR_OPEN and next_char == cons.CHAR_SQ_BR_OPEN:
+                        or curr_char == cons.CHAR_SQ_BR_OPEN and next_char == cons.CHAR_SQ_BR_OPEN:
                     wiki_slot_flush()
                     curr_pos += 1
                     self.in_link = True
-                elif curr_char == cons.CHAR_SQ_BR_OPEN\
-                and next_char in [cons.CHAR_SPACE, cons.CHAR_STAR, 'x']\
-                and third_char == cons.CHAR_SQ_BR_CLOSE:
-                    if next_char == cons.CHAR_SPACE: self.wiki_slot += cons.CHAR_LISTTODO
-                    elif next_char == cons.CHAR_STAR: self.wiki_slot += cons.CHAR_LISTDONEOK
-                    else: self.wiki_slot += cons.CHAR_LISTDONEFAIL
+                elif curr_char == cons.CHAR_SQ_BR_OPEN \
+                        and next_char in [cons.CHAR_SPACE, cons.CHAR_STAR, 'x'] \
+                        and third_char == cons.CHAR_SQ_BR_CLOSE:
+                    if next_char == cons.CHAR_SPACE:
+                        self.wiki_slot += cons.CHAR_LISTTODO
+                    elif next_char == cons.CHAR_STAR:
+                        self.wiki_slot += cons.CHAR_LISTDONEOK
+                    else:
+                        self.wiki_slot += cons.CHAR_LISTDONEFAIL
                     self.wiki_slot += cons.CHAR_SPACE
                     curr_pos += 2
                 elif self.in_table:
@@ -1021,19 +1147,20 @@ class ZimHandler():
                             else:
                                 self.in_table = False
                                 self.curr_table.append(self.curr_table.pop(0))
-                                if self.curr_table[0][0].startswith(":-")\
-                                or self.curr_table[0][0].startswith("--"):
+                                if self.curr_table[0][0].startswith(":-") \
+                                        or self.curr_table[0][0].startswith("--"):
                                     del self.curr_table[0]
                                 table_dict = {'col_min': cons.TABLE_DEFAULT_COL_MIN,
                                               'col_max': cons.TABLE_DEFAULT_COL_MAX,
                                               'matrix': self.curr_table}
-                                self.dad.xml_handler.table_element_to_xml([self.chars_counter, table_dict, cons.TAG_PROP_LEFT], self.nodes_list[-1], self.dom)
+                                self.dad.xml_handler.table_element_to_xml(
+                                    [self.chars_counter, table_dict, cons.TAG_PROP_LEFT], self.nodes_list[-1], self.dom)
                                 self.chars_counter += 1
                     else:
                         self.curr_cell += curr_char
                 else:
                     self.wiki_slot += curr_char
-                    #print self.wiki_slot
+                    # print self.wiki_slot
                     if curr_char == ":" and next_char == cons.CHAR_SLASH:
                         probably_url = True
                     elif curr_char in [cons.CHAR_SPACE, cons.CHAR_NEWLINE]:
@@ -1115,7 +1242,8 @@ class TomboyHandler():
     def doc_parse(self, xml_string, file_name):
         """Parse an xml file"""
         dest_dom_father = self.dest_orphans_dom_node
-        try: dom = xml.dom.minidom.parseString(xml_string)
+        try:
+            dom = xml.dom.minidom.parseString(xml_string)
         except:
             print "? non xml file:", file_name
             return
@@ -1167,12 +1295,12 @@ class TomboyHandler():
                 if self.curr_attributes[cons.TAG_LINK] == "webs ":
                     self.curr_attributes[cons.TAG_LINK] += dom_iter.data
                 elif self.is_list_item:
-                    text_data = self.dad.chars_listbul[0]+cons.CHAR_SPACE + text_data
+                    text_data = self.dad.chars_listbul[0] + cons.CHAR_SPACE + text_data
                 elif self.is_link_to_node:
-                    self.links_to_node_list.append({'name_dest':text_data,
-                                                    'node_source':self.node_title,
-                                                    'char_start':self.chars_counter,
-                                                    'char_end':self.chars_counter+len(text_data)})
+                    self.links_to_node_list.append({'name_dest': text_data,
+                                                    'node_source': self.node_title,
+                                                    'char_start': self.chars_counter,
+                                                    'char_end': self.chars_counter + len(text_data)})
                 self.rich_text_serialize(text_data)
                 self.chars_counter += len(text_data)
             elif dom_iter.nodeName == "bold":
@@ -1220,7 +1348,7 @@ class TomboyHandler():
                 self.node_add_iter(dom_iter.firstChild)
                 self.is_link_to_node = False
             elif dom_iter.firstChild:
-                #print dom_iter.nodeName
+                # print dom_iter.nodeName
                 self.node_add_iter(dom_iter.firstChild)
             dom_iter = dom_iter.nextSibling
 
@@ -1259,10 +1387,10 @@ class TomboyHandler():
             node_dest = dad.get_tree_iter_from_node_name(link_to_node['name_dest'])
             node_source = dad.get_tree_iter_from_node_name(link_to_node['node_source'])
             if not node_dest:
-                #print "node_dest not found"
+                # print "node_dest not found"
                 continue
             if not node_source:
-                #print "node_source not found"
+                # print "node_source not found"
                 continue
             source_buffer = dad.get_textbuffer_from_tree_iter(node_source)
             if source_buffer.get_char_count() < link_to_node['char_end']:
@@ -1383,7 +1511,8 @@ class BasketHandler(HTMLParser.HTMLParser):
                         file_descriptor = open(content_path, 'r')
                         node_string = file_descriptor.read()
                         file_descriptor.close()
-                    else: node_string = "" # empty node
+                    else:
+                        node_string = ""  # empty node
                     self.feed(node_string.decode(cons.STR_UTF8, cons.STR_IGNORE))
                     self.rich_text_serialize(cons.CHAR_NEWLINE)
                     self.chars_counter += 1
@@ -1424,7 +1553,7 @@ class BasketHandler(HTMLParser.HTMLParser):
             while content_dom_iter:
                 if content_dom_iter.nodeName == "content":
                     if content_dom_iter.hasAttribute('title'):
-                        title = "cross reference: "  + content_dom_iter.attributes['title'].value
+                        title = "cross reference: " + content_dom_iter.attributes['title'].value
                         self.feed(title.decode(cons.STR_UTF8, cons.STR_IGNORE))
                         self.rich_text_serialize(cons.CHAR_NEWLINE)
                         self.chars_counter += 1
@@ -1452,11 +1581,14 @@ class BasketHandler(HTMLParser.HTMLParser):
         """Encountered the beginning of a tag"""
         if self.curr_state == 0:
             if tag == "body": self.curr_state = 1
-        else: # self.curr_state == 1
+        else:  # self.curr_state == 1
             if tag == "span" and attrs[0][0] == cons.TAG_STYLE:
-                if "font-weight" in attrs[0][1]: self.curr_attributes[cons.TAG_WEIGHT] = cons.TAG_PROP_HEAVY
-                elif "font-style" in attrs[0][1] and cons.TAG_PROP_ITALIC in attrs[0][1]: self.curr_attributes[cons.TAG_STYLE] = cons.TAG_PROP_ITALIC
-                elif "text-decoration" in attrs[0][1] and cons.TAG_UNDERLINE in attrs[0][1]: self.curr_attributes[cons.TAG_UNDERLINE] = cons.TAG_PROP_SINGLE
+                if "font-weight" in attrs[0][1]:
+                    self.curr_attributes[cons.TAG_WEIGHT] = cons.TAG_PROP_HEAVY
+                elif "font-style" in attrs[0][1] and cons.TAG_PROP_ITALIC in attrs[0][1]:
+                    self.curr_attributes[cons.TAG_STYLE] = cons.TAG_PROP_ITALIC
+                elif "text-decoration" in attrs[0][1] and cons.TAG_UNDERLINE in attrs[0][1]:
+                    self.curr_attributes[cons.TAG_UNDERLINE] = cons.TAG_PROP_SINGLE
                 elif "color" in attrs[0][1]:
                     match = re.match("(?<=^).+:(.+);(?=$)", attrs[0][1])
                     if match != None: self.curr_attributes[cons.TAG_FOREGROUND] = match.group(1).strip()
@@ -1470,10 +1602,10 @@ class BasketHandler(HTMLParser.HTMLParser):
                 self.chars_counter += 1
             elif tag == "hr":
                 # this is a data block composed only by an horizontal rule
-                self.rich_text_serialize(cons.CHAR_NEWLINE+self.dad.h_rule+cons.CHAR_NEWLINE)
-                self.chars_counter += len(self.dad.h_rule)+2
+                self.rich_text_serialize(cons.CHAR_NEWLINE + self.dad.h_rule + cons.CHAR_NEWLINE)
+                self.chars_counter += len(self.dad.h_rule) + 2
             elif tag == "li":
-                self.rich_text_serialize(cons.CHAR_NEWLINE+self.dad.chars_listbul[0]+cons.CHAR_SPACE)
+                self.rich_text_serialize(cons.CHAR_NEWLINE + self.dad.chars_listbul[0] + cons.CHAR_SPACE)
                 self.chars_counter += 3
 
     def handle_endtag(self, tag):
@@ -1488,14 +1620,15 @@ class BasketHandler(HTMLParser.HTMLParser):
             self.curr_attributes[cons.TAG_STYLE] = ""
             self.curr_attributes[cons.TAG_UNDERLINE] = ""
             self.curr_attributes[cons.TAG_FOREGROUND] = ""
-        elif tag == "a": self.curr_attributes[cons.TAG_LINK] = ""
+        elif tag == "a":
+            self.curr_attributes[cons.TAG_LINK] = ""
         elif tag == "body":
             self.rich_text_serialize(cons.CHAR_NEWLINE)
             self.chars_counter += 1
 
     def handle_data(self, data):
         """Found Data"""
-        if self.curr_state == 0 or data in [cons.CHAR_NEWLINE, cons.CHAR_NEWLINE*2]: return
+        if self.curr_state == 0 or data in [cons.CHAR_NEWLINE, cons.CHAR_NEWLINE * 2]: return
         data = data.replace(cons.CHAR_NEWLINE, "")
         self.rich_text_serialize(data)
         self.chars_counter += len(data)
@@ -1551,15 +1684,17 @@ class KnowitHandler(HTMLParser.HTMLParser):
         for text_line in file_descriptor:
             text_line = text_line.decode(cons.STR_UTF8, cons.STR_IGNORE)
             if self.curr_xml_state == 0:
-                if text_line.startswith("\NewEntry ")\
-                or text_line.startswith("\CurrentEntry "):
-                    if text_line[1] == "N": text_to_parse = text_line[10:-1]
-                    else: text_to_parse = text_line[14:-1]
+                if text_line.startswith("\NewEntry ") \
+                        or text_line.startswith("\CurrentEntry "):
+                    if text_line[1] == "N":
+                        text_to_parse = text_line[10:-1]
+                    else:
+                        text_to_parse = text_line[14:-1]
                     match = re.match("(\d+) (.*)$", text_to_parse)
                     if not match: print '%s' % text_to_parse
                     self.curr_node_level = int(match.group(1))
                     self.curr_node_name = match.group(2)
-                    #print "node name = '%s', node level = %s" % (self.curr_node_name, self.curr_node_level)
+                    # print "node name = '%s', node level = %s" % (self.curr_node_name, self.curr_node_level)
                     if self.curr_node_level <= self.former_node_level:
                         for count in range(self.former_node_level - self.curr_node_level):
                             self.nodes_list.pop()
@@ -1571,7 +1706,9 @@ class KnowitHandler(HTMLParser.HTMLParser):
                     self.nodes_list[-1].setAttribute("name", self.curr_node_name)
                     self.nodes_list[-1].setAttribute("prog_lang", cons.RICH_TEXT_ID)
                     self.nodes_list[-2].appendChild(self.nodes_list[-1])
-                else: self.curr_node_name += text_line.replace(cons.CHAR_CR, "").replace(cons.CHAR_NEWLINE, "") + cons.CHAR_SPACE
+                else:
+                    self.curr_node_name += text_line.replace(cons.CHAR_CR, "").replace(cons.CHAR_NEWLINE,
+                                                                                       "") + cons.CHAR_SPACE
             elif self.curr_xml_state == 1:
                 if text_line.startswith("\Link "):
                     link_uri = text_line[6:-1]
@@ -1579,7 +1716,7 @@ class KnowitHandler(HTMLParser.HTMLParser):
                 elif text_line.startswith("\Descr "):
                     link_desc = text_line[7:-1]
                     self.links_list[-1][1] = link_desc
-                elif text_line.endswith("</body></html>"+cons.CHAR_NEWLINE):
+                elif text_line.endswith("</body></html>" + cons.CHAR_NEWLINE):
                     # node content end
                     self.curr_xml_state = 0
                     self.curr_html_state = 0
@@ -1591,31 +1728,36 @@ class KnowitHandler(HTMLParser.HTMLParser):
                                 if link_element[0][:4] == "http":
                                     self.curr_attributes[cons.TAG_LINK] = "webs %s" % link_element[0]
                                 elif link_element[0][:4] == "file":
-                                    self.curr_attributes[cons.TAG_LINK] = "file %s" % base64.b64encode(link_element[0][7:])
+                                    self.curr_attributes[cons.TAG_LINK] = "file %s" % base64.b64encode(
+                                        link_element[0][7:])
                                 self.rich_text_serialize(link_element[1])
                                 self.curr_attributes[cons.TAG_LINK] = ""
                                 self.rich_text_serialize(cons.CHAR_NEWLINE)
                             elif link_element[0].startswith("knowit://"):
                                 name_dest = link_element[0][9:]
-                                self.links_to_node_list.append({'name_dest':name_dest,
-                                    'name_source':self.curr_node_name,
-                                    'node_desc':link_element[1]})
+                                self.links_to_node_list.append({'name_dest': name_dest,
+                                                                'name_source': self.curr_node_name,
+                                                                'node_desc': link_element[1]})
                         self.links_list = []
                 elif self.curr_node_content == "" and text_line == cons.CHAR_NEWLINE:
                     # empty node
                     self.curr_xml_state = 0
                     self.curr_html_state = 0
-                else: self.curr_node_content += text_line
+                else:
+                    self.curr_node_content += text_line
 
     def handle_starttag(self, tag, attrs):
         """Encountered the beginning of a tag"""
         if self.curr_html_state == 0:
             if tag == "body": self.curr_html_state = 1
-        else: # self.curr_html_state == 1
+        else:  # self.curr_html_state == 1
             if tag == "span" and attrs[0][0] == cons.TAG_STYLE:
-                if "font-weight" in attrs[0][1]: self.curr_attributes[cons.TAG_WEIGHT] = cons.TAG_PROP_HEAVY
-                elif "font-style" in attrs[0][1] and cons.TAG_PROP_ITALIC in attrs[0][1]: self.curr_attributes[cons.TAG_STYLE] = cons.TAG_PROP_ITALIC
-                elif "text-decoration" in attrs[0][1] and cons.TAG_UNDERLINE in attrs[0][1]: self.curr_attributes[cons.TAG_UNDERLINE] = cons.TAG_PROP_SINGLE
+                if "font-weight" in attrs[0][1]:
+                    self.curr_attributes[cons.TAG_WEIGHT] = cons.TAG_PROP_HEAVY
+                elif "font-style" in attrs[0][1] and cons.TAG_PROP_ITALIC in attrs[0][1]:
+                    self.curr_attributes[cons.TAG_STYLE] = cons.TAG_PROP_ITALIC
+                elif "text-decoration" in attrs[0][1] and cons.TAG_UNDERLINE in attrs[0][1]:
+                    self.curr_attributes[cons.TAG_UNDERLINE] = cons.TAG_PROP_SINGLE
                 elif "color" in attrs[0][1]:
                     match = re.match("(?<=^).+:(.+)(?=$)", attrs[0][1])
                     if match != None: self.curr_attributes[cons.TAG_FOREGROUND] = match.group(1).strip()
@@ -1623,7 +1765,7 @@ class KnowitHandler(HTMLParser.HTMLParser):
                 # this is a data block composed only by an endline
                 self.rich_text_serialize(cons.CHAR_NEWLINE)
             elif tag == "li":
-                self.rich_text_serialize(cons.CHAR_NEWLINE+self.dad.chars_listbul[0]+cons.CHAR_SPACE)
+                self.rich_text_serialize(cons.CHAR_NEWLINE + self.dad.chars_listbul[0] + cons.CHAR_SPACE)
 
     def handle_endtag(self, tag):
         """Encountered the end of a tag"""
@@ -1639,7 +1781,7 @@ class KnowitHandler(HTMLParser.HTMLParser):
 
     def handle_data(self, data):
         """Found Data"""
-        if self.curr_html_state == 0 or data in [cons.CHAR_NEWLINE, cons.CHAR_NEWLINE*2]: return
+        if self.curr_html_state == 0 or data in [cons.CHAR_NEWLINE, cons.CHAR_NEWLINE * 2]: return
         data = data.replace(cons.CHAR_NEWLINE, "")
         self.rich_text_serialize(data)
 
@@ -1656,10 +1798,10 @@ class KnowitHandler(HTMLParser.HTMLParser):
             node_dest = dad.get_tree_iter_from_node_name(link_to_node['name_dest'])
             node_source = dad.get_tree_iter_from_node_name(link_to_node['name_source'])
             if not node_dest:
-                #print "node_dest not found"
+                # print "node_dest not found"
                 continue
             if not node_source:
-                #print "node_source not found"
+                # print "node_source not found"
                 continue
             source_buffer = dad.get_textbuffer_from_tree_iter(node_source)
             property_value = cons.LINK_TYPE_NODE + cons.CHAR_SPACE + str(dad.treestore[node_dest][3])
@@ -1755,7 +1897,8 @@ class KeynoteHandler:
                         self.xml_handler.pixbuf_element_to_xml(pixbuf_element, self.nodes_list[-1], self.dom)
                     self.pixbuf_vector = []
                     self.chars_counter = 0
-                else: self.write_line_text(text_line.replace(cons.CHAR_CR, "").replace(cons.CHAR_NEWLINE, ""))
+                else:
+                    self.write_line_text(text_line.replace(cons.CHAR_CR, "").replace(cons.CHAR_NEWLINE, ""))
 
     def check_pending_text_to_tag(self):
         """Check if there's text to process before opening tag"""
@@ -1765,16 +1908,19 @@ class KeynoteHandler:
 
     def write_line_text(self, text_line):
         """Write Stripped Line Content"""
-        #print "'%s'" % text_line
+        # print "'%s'" % text_line
         curr_state = 0
         dummy_loop = 0
         if self.in_picture or self.in_object:
             if text_line[0] == cons.CHAR_BR_CLOSE:
                 self.img_fd.close()
-                if self.in_picture: print "in_picture OFF"
-                else: print "in_object OFF"
+                if self.in_picture:
+                    print "in_picture OFF"
+                else:
+                    print "in_object OFF"
                 with open(self.img_tmp_path, 'rb') as fd:
-                    pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(cons.FILE_CHAR, self.dad.embfile_size, self.dad.embfile_size)
+                    pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(cons.FILE_CHAR, self.dad.embfile_size,
+                                                                  self.dad.embfile_size)
                     pixbuf.filename = "image.wmf" if self.in_picture else "file"
                     pixbuf.embfile = fd.read()
                     pixbuf.time = time.time()
@@ -1791,15 +1937,15 @@ class KeynoteHandler:
         elif "HYPERLINK" in text_line:
             hyp_idx_1 = text_line.find("HYPERLINK")
             hyp_idx_2 = text_line.find("}}}")
-            text_line = text_line[hyp_idx_1+11:hyp_idx_2]
-            #print text_line
+            text_line = text_line[hyp_idx_1 + 11:hyp_idx_2]
+            # print text_line
             hyp_idx_1 = text_line.find(cons.CHAR_DQUOTE)
             text_target = text_line[:hyp_idx_1]
             text_line = text_line[hyp_idx_1:]
             hyp_idx_2 = text_line.find(cons.CHAR_SPACE)
-            text_label = text_line[hyp_idx_2+1:]
-            text_target = text_target.replace(4*cons.CHAR_BSLASH, cons.CHAR_BSLASH)
-            text_label = text_label.replace(2*cons.CHAR_BSLASH, cons.CHAR_BSLASH)
+            text_label = text_line[hyp_idx_2 + 1:]
+            text_target = text_target.replace(4 * cons.CHAR_BSLASH, cons.CHAR_BSLASH)
+            text_label = text_label.replace(2 * cons.CHAR_BSLASH, cons.CHAR_BSLASH)
             print text_target
             print text_label
             self.check_pending_text_to_tag()
@@ -1809,11 +1955,11 @@ class KeynoteHandler:
                 if text_target[8:9] != cons.CHAR_STAR:
                     self.curr_attributes[cons.TAG_LINK] = "file %s" % base64.b64encode(text_target[8:])
                 else:
-                    self.links_to_node_list.append({'name_dest':text_label,
-                        'name_source':self.curr_node_name,
-                        'node_desc':text_label,
-                        'char_start':self.chars_counter,
-                        'char_end':self.chars_counter+len(text_label)})
+                    self.links_to_node_list.append({'name_dest': text_label,
+                                                    'name_source': self.curr_node_name,
+                                                    'node_desc': text_label,
+                                                    'char_start': self.chars_counter,
+                                                    'char_end': self.chars_counter + len(text_label)})
             self.rich_text_serialize(text_label)
             self.curr_attributes[cons.TAG_LINK] = ""
             return
@@ -1822,30 +1968,30 @@ class KeynoteHandler:
                 dummy_loop -= 1
                 continue
             if curr_char == cons.CHAR_BSLASH:
-                if (self.in_br_num == 0 or self.in_br_read_data) and text_line[i+1:].startswith(cons.CHAR_SQUOTE):
-                    self.curr_node_content += unichr(int(text_line[i+2:i+4], 16))
+                if (self.in_br_num == 0 or self.in_br_read_data) and text_line[i + 1:].startswith(cons.CHAR_SQUOTE):
+                    self.curr_node_content += unichr(int(text_line[i + 2:i + 4], 16))
                     dummy_loop = 3
                     curr_state = 0
-                elif text_line[i+1:].startswith(cons.CHAR_BSLASH):
+                elif text_line[i + 1:].startswith(cons.CHAR_BSLASH):
                     self.curr_node_content += cons.CHAR_BSLASH
                     dummy_loop = 1
                     curr_state = 0
-                elif text_line[i+1:].startswith(cons.CHAR_BR_OPEN):
+                elif text_line[i + 1:].startswith(cons.CHAR_BR_OPEN):
                     self.curr_node_content += cons.CHAR_BR_OPEN
                     dummy_loop = 1
                     curr_state = 0
-                elif text_line[i+1:].startswith(cons.CHAR_BR_CLOSE):
+                elif text_line[i + 1:].startswith(cons.CHAR_BR_CLOSE):
                     self.curr_node_content += cons.CHAR_BR_CLOSE
                     dummy_loop = 1
                     curr_state = 0
-                elif text_line[i+1:] == "par":
+                elif text_line[i + 1:] == "par":
                     self.curr_node_content += cons.CHAR_NEWLINE
                     break
-                elif text_line[i+1:].startswith("line"):
+                elif text_line[i + 1:].startswith("line"):
                     dummy_loop = 4
-                    self.curr_node_content += cons.CHAR_NEWLINE + 3*cons.CHAR_SPACE
-                elif text_line[i+1:].startswith("pntext"):
-                    fN = text_line[i+8:i+11]
+                    self.curr_node_content += cons.CHAR_NEWLINE + 3 * cons.CHAR_SPACE
+                elif text_line[i + 1:].startswith("pntext"):
+                    fN = text_line[i + 8:i + 11]
                     if fN == "f0 ":
                         curr_state = 1
                         self.in_br_read_data = True
@@ -1856,69 +2002,73 @@ class KeynoteHandler:
                     else:
                         dummy_loop = 9
                         self.curr_node_content += self.dad.chars_listbul[0] + cons.CHAR_SPACE
-                elif (text_line[i+1:].startswith("b"+cons.CHAR_SPACE) or text_line[i+1:].startswith("b"+cons.CHAR_BSLASH)):
+                elif (text_line[i + 1:].startswith("b" + cons.CHAR_SPACE) or text_line[i + 1:].startswith(
+                            "b" + cons.CHAR_BSLASH)):
                     self.check_pending_text_to_tag()
                     self.curr_attributes[cons.TAG_WEIGHT] = cons.TAG_PROP_HEAVY
-                    if text_line[i+2:i+3] == cons.CHAR_SPACE:
+                    if text_line[i + 2:i + 3] == cons.CHAR_SPACE:
                         dummy_loop = 2
                     else:
                         dummy_loop = 1
                     curr_state = 0
-                elif (text_line[i+1:].startswith("i"+cons.CHAR_SPACE) or text_line[i+1:].startswith("i"+cons.CHAR_BSLASH)):
+                elif (text_line[i + 1:].startswith("i" + cons.CHAR_SPACE) or text_line[i + 1:].startswith(
+                            "i" + cons.CHAR_BSLASH)):
                     self.check_pending_text_to_tag()
                     self.curr_attributes[cons.TAG_STYLE] = cons.TAG_PROP_ITALIC
-                    if text_line[i+2:i+3] == cons.CHAR_SPACE:
+                    if text_line[i + 2:i + 3] == cons.CHAR_SPACE:
                         dummy_loop = 2
                     else:
                         dummy_loop = 1
                     curr_state = 0
-                elif (text_line[i+1:].startswith("ul"+cons.CHAR_SPACE) or text_line[i+1:].startswith("ul"+cons.CHAR_BSLASH)):
+                elif (text_line[i + 1:].startswith("ul" + cons.CHAR_SPACE) or text_line[i + 1:].startswith(
+                            "ul" + cons.CHAR_BSLASH)):
                     self.check_pending_text_to_tag()
                     self.curr_attributes[cons.TAG_UNDERLINE] = cons.TAG_PROP_SINGLE
-                    if text_line[i+3:i+4] == cons.CHAR_SPACE:
+                    if text_line[i + 3:i + 4] == cons.CHAR_SPACE:
                         dummy_loop = 3
                     else:
                         dummy_loop = 2
                     curr_state = 0
-                elif (text_line[i+1:].startswith("strike"+cons.CHAR_SPACE) or text_line[i+1:].startswith("strike"+cons.CHAR_BSLASH)):
+                elif (text_line[i + 1:].startswith("strike" + cons.CHAR_SPACE) or text_line[i + 1:].startswith(
+                            "strike" + cons.CHAR_BSLASH)):
                     self.check_pending_text_to_tag()
                     self.curr_attributes[cons.TAG_STRIKETHROUGH] = cons.TAG_PROP_TRUE
-                    if text_line[i+7:i+8] == cons.CHAR_SPACE:
+                    if text_line[i + 7:i + 8] == cons.CHAR_SPACE:
                         dummy_loop = 7
                     else:
                         dummy_loop = 6
                     curr_state = 0
-                elif text_line[i+1:].startswith("b0"):
+                elif text_line[i + 1:].startswith("b0"):
                     self.check_pending_text_to_tag()
                     self.curr_attributes[cons.TAG_WEIGHT] = ""
                     dummy_loop = 2
                     curr_state = 0
-                elif text_line[i+1:].startswith("i0"):
+                elif text_line[i + 1:].startswith("i0"):
                     self.check_pending_text_to_tag()
                     self.curr_attributes[cons.TAG_STYLE] = ""
                     dummy_loop = 2
                     curr_state = 0
-                elif text_line[i+1:].startswith("ulnone"):
+                elif text_line[i + 1:].startswith("ulnone"):
                     self.check_pending_text_to_tag()
                     self.curr_attributes[cons.TAG_UNDERLINE] = ""
                     dummy_loop = 6
                     curr_state = 0
-                elif text_line[i+1:].startswith("strike0"):
+                elif text_line[i + 1:].startswith("strike0"):
                     self.check_pending_text_to_tag()
                     self.curr_attributes[cons.TAG_STRIKETHROUGH] = ""
                     dummy_loop = 7
                     curr_state = 0
-                elif text_line[i+1:].startswith("pict"):
+                elif text_line[i + 1:].startswith("pict"):
                     self.in_picture = True
                     print "in_picture ON"
                     curr_state = 1
                     self.img_fd = open(self.img_tmp_path, "wb")
-                elif text_line[i+1:].startswith("object"):
+                elif text_line[i + 1:].startswith("object"):
                     self.in_object = True
                     print "in_object ON"
                     curr_state = 1
                     self.img_fd = open(self.img_tmp_path, "wb")
-                elif text_line[i+1:].startswith("result"):
+                elif text_line[i + 1:].startswith("result"):
                     print "result"
                     dummy_loop = 6
                     curr_state = 0
@@ -1928,7 +2078,8 @@ class KeynoteHandler:
                 if self.node_br_ok:
                     self.in_br_num += 1
                     print "self.in_br_num", self.in_br_num
-                else: self.node_br_ok = True
+                else:
+                    self.node_br_ok = True
             elif curr_char == cons.CHAR_BR_CLOSE:
                 self.in_br_num -= 1
                 print "self.in_br_num", self.in_br_num
@@ -1950,10 +2101,10 @@ class KeynoteHandler:
             node_dest = dad.get_tree_iter_from_node_name(link_to_node['name_dest'])
             node_source = dad.get_tree_iter_from_node_name(link_to_node['name_source'])
             if not node_dest:
-                #print "node_dest not found"
+                # print "node_dest not found"
                 continue
             if not node_source:
-                #print "node_source not found"
+                # print "node_source not found"
                 continue
             source_buffer = dad.get_textbuffer_from_tree_iter(node_source)
             if source_buffer.get_char_count() < link_to_node['char_end']:
@@ -2000,19 +2151,19 @@ class TreepadHandler:
         # 1: waiting for node name
         # 2: waiting for node level
         # 3: gathering node content
-        treepad_vec = treepad_string.split(cons.CHAR_CR+cons.CHAR_NEWLINE)
+        treepad_vec = treepad_string.split(cons.CHAR_CR + cons.CHAR_NEWLINE)
         for text_line in treepad_vec:
             if self.curr_state == 0:
                 if len(text_line) > 5 and text_line[:6] == "<node>": self.curr_state = 1
             elif self.curr_state == 1:
-                #print "node name", text_line
+                # print "node name", text_line
                 self.curr_node_name = text_line
                 self.curr_state = 2
             elif self.curr_state == 2:
-                #print "node level", text_line
+                # print "node level", text_line
                 if re.match("\d+", text_line):
                     self.curr_node_level = int(text_line)
-                    #print self.curr_node_level
+                    # print self.curr_node_level
                     if self.curr_node_level <= self.former_node_level:
                         for count in range(self.former_node_level - self.curr_node_level):
                             self.nodes_list.pop()
@@ -2024,12 +2175,14 @@ class TreepadHandler:
                     self.nodes_list[-1].setAttribute("name", self.curr_node_name)
                     self.nodes_list[-1].setAttribute("prog_lang", cons.RICH_TEXT_ID)
                     self.nodes_list[-2].appendChild(self.nodes_list[-1])
-                else: self.curr_node_name += text_line + cons.CHAR_SPACE
+                else:
+                    self.curr_node_name += text_line + cons.CHAR_SPACE
             elif self.curr_state == 3:
                 if len(text_line) > 9 and text_line[:10] == "<end node>":
                     self.curr_state = 0
                     self.rich_text_serialize(self.curr_node_content)
-                else: self.curr_node_content += text_line + cons.CHAR_NEWLINE
+                else:
+                    self.curr_node_content += text_line + cons.CHAR_NEWLINE
 
     def get_cherrytree_xml(self, treepad_string):
         """Returns a CherryTree string Containing the Treepad Nodes"""
@@ -2067,7 +2220,7 @@ class PlainTextHandler:
                         self.add_file(full_element)
                 else:
                     mime_type = gio_file_info.get_content_type()
-                    if mime_type in ["."+self.dad.ext_plain_import.lower(), "."+self.dad.ext_plain_import.upper()]:
+                    if mime_type in ["." + self.dad.ext_plain_import.lower(), "." + self.dad.ext_plain_import.upper()]:
                         self.add_file(full_element)
             elif os.path.isdir(full_element):
                 self.add_node_with_content(full_element, "")
@@ -2091,8 +2244,8 @@ class PlainTextHandler:
         """Append Node and Fill Content"""
         self.nodes_list.append(self.dom.createElement("node"))
         node_name = os.path.basename(filepath)
-        if node_name.lower().endswith("."+self.dad.ext_plain_import.lower()):
-            len_ext = 1+len(self.dad.ext_plain_import)
+        if node_name.lower().endswith("." + self.dad.ext_plain_import.lower()):
+            len_ext = 1 + len(self.dad.ext_plain_import)
             node_name = node_name[:-len_ext]
         self.nodes_list[-1].setAttribute("name", node_name)
         self.nodes_list[-1].setAttribute("prog_lang", cons.RICH_TEXT_ID)
@@ -2104,8 +2257,10 @@ class PlainTextHandler:
         self.dom = xml.dom.minidom.Document()
         self.nodes_list = [self.dom.createElement(cons.APP_NAME)]
         self.dom.appendChild(self.nodes_list[0])
-        if filepath: self.add_file(filepath)
-        else: self.add_folder(folderpath)
+        if filepath:
+            self.add_file(filepath)
+        else:
+            self.add_folder(folderpath)
         return self.dom.toxml()
 
 
@@ -2142,7 +2297,7 @@ class MempadHandler:
                     self.curr_state = 1
             elif self.curr_state == 1:
                 if ord(element) == 0:
-                    #print self.curr_node_name
+                    # print self.curr_node_name
                     self.curr_node_content = ""
                     self.curr_state = 2
                     if self.curr_node_level <= self.former_node_level:
@@ -2154,13 +2309,15 @@ class MempadHandler:
                     self.nodes_list[-1].setAttribute("name", self.curr_node_name)
                     self.nodes_list[-1].setAttribute("prog_lang", cons.RICH_TEXT_ID)
                     self.nodes_list[-2].appendChild(self.nodes_list[-1])
-                else: self.curr_node_name += element
+                else:
+                    self.curr_node_name += element
             elif self.curr_state == 2:
                 if ord(element) == 0:
-                    #print self.curr_node_content
+                    # print self.curr_node_content
                     self.curr_state = 3
                     self.rich_text_serialize(self.curr_node_content)
-                else: self.curr_node_content += element
+                else:
+                    self.curr_node_content += element
             else:
                 self.curr_node_level = ord(element)
                 self.curr_node_name = ""
@@ -2220,10 +2377,14 @@ class NotecaseHandler(HTMLParser.HTMLParser):
                 # waiting for the title
                 # got dt, we go state 2->1
                 self.curr_state = 1
-            elif tag == "b": self.curr_attributes[cons.TAG_WEIGHT] = cons.TAG_PROP_HEAVY
-            elif tag == "i": self.curr_attributes[cons.TAG_STYLE] = cons.TAG_PROP_ITALIC
-            elif tag == "u": self.curr_attributes[cons.TAG_UNDERLINE] = cons.TAG_PROP_SINGLE
-            elif tag == "s": self.curr_attributes[cons.TAG_STRIKETHROUGH] = cons.TAG_PROP_TRUE
+            elif tag == "b":
+                self.curr_attributes[cons.TAG_WEIGHT] = cons.TAG_PROP_HEAVY
+            elif tag == "i":
+                self.curr_attributes[cons.TAG_STYLE] = cons.TAG_PROP_ITALIC
+            elif tag == "u":
+                self.curr_attributes[cons.TAG_UNDERLINE] = cons.TAG_PROP_SINGLE
+            elif tag == "s":
+                self.curr_attributes[cons.TAG_STRIKETHROUGH] = cons.TAG_PROP_TRUE
             elif tag == "span" and attrs[0][0] == cons.TAG_STYLE:
                 match = re.match("(?<=^)(.+):(.+)(?=$)", attrs[0][1])
                 if match != None:
@@ -2242,7 +2403,7 @@ class NotecaseHandler(HTMLParser.HTMLParser):
                 self.rich_text_serialize(cons.CHAR_NEWLINE)
                 self.chars_counter += 1
             elif tag == "li":
-                self.rich_text_serialize(cons.CHAR_NEWLINE+self.dad.chars_listbul[0]+cons.CHAR_SPACE)
+                self.rich_text_serialize(cons.CHAR_NEWLINE + self.dad.chars_listbul[0] + cons.CHAR_SPACE)
                 self.chars_counter += 3
             elif tag in ["img", "v:imagedata"] and len(attrs) > 0:
                 for attribute in attrs:
@@ -2250,10 +2411,13 @@ class NotecaseHandler(HTMLParser.HTMLParser):
                         if attribute[1][:23] == "data:image/jpeg;base64,":
                             jpeg_data = attribute[1][23:]
                             pixbuf_loader = gtk.gdk.pixbuf_loader_new_with_mime_type("image/jpeg")
-                            try: pixbuf_loader.write(base64.b64decode(jpeg_data))
+                            try:
+                                pixbuf_loader.write(base64.b64decode(jpeg_data))
                             except:
-                                try: pixbuf_loader.write(base64.b64decode(jpeg_data + "="))
-                                except: pixbuf_loader.write(base64.b64decode(jpeg_data + "=="))
+                                try:
+                                    pixbuf_loader.write(base64.b64decode(jpeg_data + "="))
+                                except:
+                                    pixbuf_loader.write(base64.b64decode(jpeg_data + "=="))
                             pixbuf_loader.close()
                             pixbuf = pixbuf_loader.get_pixbuf()
                             self.pixbuf_vector.append([self.chars_counter, pixbuf, cons.TAG_PROP_LEFT])
@@ -2261,10 +2425,13 @@ class NotecaseHandler(HTMLParser.HTMLParser):
                         elif attribute[1][:22] == "data:image/png;base64,":
                             png_data = attribute[1][22:]
                             pixbuf_loader = gtk.gdk.pixbuf_loader_new_with_mime_type("image/png")
-                            try: pixbuf_loader.write(base64.b64decode(png_data))
+                            try:
+                                pixbuf_loader.write(base64.b64decode(png_data))
                             except:
-                                try: pixbuf_loader.write(base64.b64decode(png_data + "="))
-                                except: pixbuf_loader.write(base64.b64decode(png_data + "=="))
+                                try:
+                                    pixbuf_loader.write(base64.b64decode(png_data + "="))
+                                except:
+                                    pixbuf_loader.write(base64.b64decode(png_data + "=="))
                             pixbuf_loader.close()
                             pixbuf = pixbuf_loader.get_pixbuf()
                             self.pixbuf_vector.append([self.chars_counter, pixbuf, cons.TAG_PROP_LEFT])
@@ -2309,16 +2476,23 @@ class NotecaseHandler(HTMLParser.HTMLParser):
                 self.nodes_list.pop()
                 # got /dl, we go state 2->0 and wait for a parent's sibling
                 self.curr_state = 0
-            elif tag == "b": self.curr_attributes[cons.TAG_WEIGHT] = ""
-            elif tag == "i": self.curr_attributes[cons.TAG_STYLE] = ""
-            elif tag == "u": self.curr_attributes[cons.TAG_UNDERLINE] = ""
-            elif tag == "s": self.curr_attributes[cons.TAG_STRIKETHROUGH] = ""
+            elif tag == "b":
+                self.curr_attributes[cons.TAG_WEIGHT] = ""
+            elif tag == "i":
+                self.curr_attributes[cons.TAG_STYLE] = ""
+            elif tag == "u":
+                self.curr_attributes[cons.TAG_UNDERLINE] = ""
+            elif tag == "s":
+                self.curr_attributes[cons.TAG_STRIKETHROUGH] = ""
             elif tag == "span":
                 if self.latest_span:
-                    if self.latest_span[-1] == cons.TAG_FOREGROUND: self.curr_attributes[cons.TAG_FOREGROUND] = ""
-                    elif self.latest_span[-1] == cons.TAG_BACKGROUND: self.curr_attributes[cons.TAG_BACKGROUND] = ""
+                    if self.latest_span[-1] == cons.TAG_FOREGROUND:
+                        self.curr_attributes[cons.TAG_FOREGROUND] = ""
+                    elif self.latest_span[-1] == cons.TAG_BACKGROUND:
+                        self.curr_attributes[cons.TAG_BACKGROUND] = ""
                     del self.latest_span[-1]
-            elif tag == "a": self.curr_attributes[cons.TAG_LINK] = ""
+            elif tag == "a":
+                self.curr_attributes[cons.TAG_LINK] = ""
         elif tag == "dl":
             # backward one level in nodes list
             for pixbuf_element in self.pixbuf_vector:
@@ -2329,7 +2503,7 @@ class NotecaseHandler(HTMLParser.HTMLParser):
 
     def handle_data(self, data):
         """Found Data"""
-        if self.curr_state == 0 or data in [cons.CHAR_NEWLINE, cons.CHAR_NEWLINE*2]: return
+        if self.curr_state == 0 or data in [cons.CHAR_NEWLINE, cons.CHAR_NEWLINE * 2]: return
         if self.curr_state == 1:
             # state 1 got title
             self.curr_title += data
@@ -2343,7 +2517,8 @@ class NotecaseHandler(HTMLParser.HTMLParser):
         """Found Entity Reference like &name;"""
         if name in htmlentitydefs.name2codepoint:
             unicode_char = unichr(htmlentitydefs.name2codepoint[name])
-        else: return
+        else:
+            return
         if self.curr_state == 1:
             # state 1 got title
             self.curr_title += unicode_char
@@ -2377,7 +2552,8 @@ class HTMLHandler(HTMLParser.HTMLParser):
     def __init__(self, dad):
         """Machine boot"""
         self.dad = dad
-        self.monitored_tags = ["p", "b", "i", "u", "s", cons.TAG_PROP_H1, cons.TAG_PROP_H2, cons.TAG_PROP_H3, "span", "font"]
+        self.monitored_tags = ["p", "b", "i", "u", "s", cons.TAG_PROP_H1, cons.TAG_PROP_H2, cons.TAG_PROP_H3, "span",
+                               "font"]
         HTMLParser.HTMLParser.__init__(self)
 
     def rich_text_serialize(self, text_data):
@@ -2394,7 +2570,7 @@ class HTMLHandler(HTMLParser.HTMLParser):
     def get_rgb_gtk_attribute(self, html_attribute):
         """Get RGB GTK attribute from HTML attribute"""
         html_attribute_key = html_attribute.strip().lower()
-        #print "html_attribute_key", html_attribute_key
+        # print "html_attribute_key", html_attribute_key
         if html_attribute_key[0] == "#":
             return html_attribute_key
         if html_attribute_key in cons.HTML_COLOR_NAMES:
@@ -2402,14 +2578,18 @@ class HTMLHandler(HTMLParser.HTMLParser):
         if "rgb" in html_attribute_key:
             rgb_tern = []
             for i in range(3):
-                if i == 0: parenth_start = html_attribute_key.find(cons.CHAR_PARENTH_OPEN)
-                else: parenth_start = html_attribute_key.find(cons.CHAR_COMMA)
-                if i == 2: parenth_end = html_attribute_key[parenth_start+1:].find(cons.CHAR_PARENTH_CLOSE)
-                else: parenth_end = html_attribute_key[parenth_start+1:].find(cons.CHAR_COMMA)
+                if i == 0:
+                    parenth_start = html_attribute_key.find(cons.CHAR_PARENTH_OPEN)
+                else:
+                    parenth_start = html_attribute_key.find(cons.CHAR_COMMA)
+                if i == 2:
+                    parenth_end = html_attribute_key[parenth_start + 1:].find(cons.CHAR_PARENTH_CLOSE)
+                else:
+                    parenth_end = html_attribute_key[parenth_start + 1:].find(cons.CHAR_COMMA)
                 if parenth_start < 0 or parenth_end < 0:
                     break
-                rgb_tern.append(int(html_attribute_key[parenth_start+1:parenth_start+1+parenth_end]))
-                html_attribute_key = html_attribute_key[parenth_start+1+parenth_end:]
+                rgb_tern.append(int(html_attribute_key[parenth_start + 1:parenth_start + 1 + parenth_end]))
+                html_attribute_key = html_attribute_key[parenth_start + 1 + parenth_end:]
             if len(rgb_tern) != 3:
                 print rgb_tern
                 return None
@@ -2431,22 +2611,27 @@ class HTMLHandler(HTMLParser.HTMLParser):
                 self.curr_rows_span = []
                 self.curr_table_header = False
                 self.curr_cell = ""
-            elif tag == "b": self.curr_attributes[cons.TAG_WEIGHT] = cons.TAG_PROP_HEAVY
-            elif tag == "i": self.curr_attributes[cons.TAG_STYLE] = cons.TAG_PROP_ITALIC
-            elif tag == "u": self.curr_attributes[cons.TAG_UNDERLINE] = cons.TAG_PROP_SINGLE
-            elif tag == "s": self.curr_attributes[cons.TAG_STRIKETHROUGH] = cons.TAG_PROP_TRUE
-            elif tag == cons.TAG_STYLE: self.curr_state = 0
+            elif tag == "b":
+                self.curr_attributes[cons.TAG_WEIGHT] = cons.TAG_PROP_HEAVY
+            elif tag == "i":
+                self.curr_attributes[cons.TAG_STYLE] = cons.TAG_PROP_ITALIC
+            elif tag == "u":
+                self.curr_attributes[cons.TAG_UNDERLINE] = cons.TAG_PROP_SINGLE
+            elif tag == "s":
+                self.curr_attributes[cons.TAG_STRIKETHROUGH] = cons.TAG_PROP_TRUE
+            elif tag == cons.TAG_STYLE:
+                self.curr_state = 0
             elif tag == "span":
                 for attr in attrs:
                     if attr[0] == cons.TAG_STYLE:
                         attributes = attr[1].split(";")
                         for attribute in attributes:
-                            #print "attribute", attribute
+                            # print "attribute", attribute
                             colon_pos = attribute.find(cons.CHAR_COLON)
                             if colon_pos < 0: continue
                             attr_name = attribute[:colon_pos].strip().lower()
-                            attr_value = attribute[colon_pos+1:].strip().lower()
-                            #print attr_name, attr_value
+                            attr_value = attribute[colon_pos + 1:].strip().lower()
+                            # print attr_name, attr_value
                             if attr_name == "color":
                                 attribute = self.get_rgb_gtk_attribute(attr_value)
                                 if attribute:
@@ -2479,26 +2664,34 @@ class HTMLHandler(HTMLParser.HTMLParser):
                         if attribute:
                             self.curr_attributes[cons.TAG_FOREGROUND] = attribute
                             self.latest_font = cons.TAG_FOREGROUND
-            elif tag in [cons.TAG_PROP_H1, cons.TAG_PROP_H2, cons.TAG_PROP_H3, cons.TAG_PROP_H4, cons.TAG_PROP_H5, cons.TAG_PROP_H6]:
+            elif tag in [cons.TAG_PROP_H1, cons.TAG_PROP_H2, cons.TAG_PROP_H3, cons.TAG_PROP_H4, cons.TAG_PROP_H5,
+                         cons.TAG_PROP_H6]:
                 self.rich_text_serialize(cons.CHAR_NEWLINE)
-                if tag == cons.TAG_PROP_H1: self.curr_attributes[cons.TAG_SCALE] = cons.TAG_PROP_H1
-                elif tag == cons.TAG_PROP_H2: self.curr_attributes[cons.TAG_SCALE] = cons.TAG_PROP_H2
-                else: self.curr_attributes[cons.TAG_SCALE] = cons.TAG_PROP_H3
+                if tag == cons.TAG_PROP_H1:
+                    self.curr_attributes[cons.TAG_SCALE] = cons.TAG_PROP_H1
+                elif tag == cons.TAG_PROP_H2:
+                    self.curr_attributes[cons.TAG_SCALE] = cons.TAG_PROP_H2
+                else:
+                    self.curr_attributes[cons.TAG_SCALE] = cons.TAG_PROP_H3
                 for attr in attrs:
                     if attr[0] == "align": self.curr_attributes[cons.TAG_JUSTIFICATION] = attr[1].strip().lower()
             elif tag == "a" and len(attrs) > 0:
-                #print "attrs", attrs
+                # print "attrs", attrs
                 for attr in attrs:
                     if attr[0] == "href":
                         link_url = attr[1]
                         if len(link_url) > 7:
                             self.curr_attributes[cons.TAG_LINK] = get_internal_link_from_http_url(link_url)
                         break
-            elif tag == "br": self.rich_text_serialize(cons.CHAR_NEWLINE)
-            elif tag == "ol": self.curr_list_type = ["o", 1]
-            elif tag == "ul": self.curr_list_type = ["u", 0]
+            elif tag == "br":
+                self.rich_text_serialize(cons.CHAR_NEWLINE)
+            elif tag == "ol":
+                self.curr_list_type = ["o", 1]
+            elif tag == "ul":
+                self.curr_list_type = ["u", 0]
             elif tag == "li":
-                if self.curr_list_type[0] == "u": self.rich_text_serialize(self.dad.chars_listbul[0]+cons.CHAR_SPACE)
+                if self.curr_list_type[0] == "u":
+                    self.rich_text_serialize(self.dad.chars_listbul[0] + cons.CHAR_SPACE)
                 else:
                     self.rich_text_serialize("%s. " % self.curr_list_type[1])
                     self.curr_list_type[1] += 1
@@ -2506,9 +2699,10 @@ class HTMLHandler(HTMLParser.HTMLParser):
                 dic_attrs = dict(a for a in attrs)
                 img_path = dic_attrs.get('src', "")
                 self.insert_image(img_path)
-            elif tag == "pre": self.pre_tag = "p"
+            elif tag == "pre":
+                self.pre_tag = "p"
         elif self.curr_state == 2:
-            if tag == "table": # nested tables
+            if tag == "table":  # nested tables
                 self.curr_table = []
                 self.curr_rows_span = []
                 self.curr_table_header = False
@@ -2534,12 +2728,16 @@ class HTMLHandler(HTMLParser.HTMLParser):
             elif tag in ["img", "v:imagedata"] and len(attrs) > 0:
                 dic_attrs = dict(a for a in attrs)
                 img_path = dic_attrs.get('src', "")
-                self.insert_image(img_path, cons.CHAR_NEWLINE*2)
-            elif tag == "br": self.curr_cell += cons.CHAR_NEWLINE
-            elif tag == "ol": self.curr_list_type = ["o", 1]
-            elif tag == "ul": self.curr_list_type = ["u", 0]
+                self.insert_image(img_path, cons.CHAR_NEWLINE * 2)
+            elif tag == "br":
+                self.curr_cell += cons.CHAR_NEWLINE
+            elif tag == "ol":
+                self.curr_list_type = ["o", 1]
+            elif tag == "ul":
+                self.curr_list_type = ["u", 0]
             elif tag == "li":
-                if self.curr_list_type[0] == "u": self.curr_cell += self.dad.chars_listbul[0]+cons.CHAR_SPACE
+                if self.curr_list_type[0] == "u":
+                    self.curr_cell += self.dad.chars_listbul[0] + cons.CHAR_SPACE
                 else:
                     self.curr_cell += "%s. " % self.curr_list_type[1]
                     self.curr_list_type[1] += 1
@@ -2555,16 +2753,19 @@ class HTMLHandler(HTMLParser.HTMLParser):
             pixbuf_loader.write(image_file)
             pixbuf_loader.close()
             pixbuf = pixbuf_loader.get_pixbuf()
-            self.dad.xml_handler.pixbuf_element_to_xml([self.chars_counter, pixbuf, cons.TAG_PROP_LEFT], self.nodes_list[-1], self.dom)
+            self.dad.xml_handler.pixbuf_element_to_xml([self.chars_counter, pixbuf, cons.TAG_PROP_LEFT],
+                                                       self.nodes_list[-1], self.dom)
             self.chars_counter += 1
             self.dad.statusbar.pop(self.dad.statusbar_context_id)
             if trailing_chars: self.rich_text_serialize(trailing_chars)
         except:
             if os.path.isfile(os.path.join(self.local_dir, img_path)):
                 pixbuf = gtk.gdk.pixbuf_new_from_file(os.path.join(self.local_dir, img_path))
-                self.dad.xml_handler.pixbuf_element_to_xml([self.chars_counter, pixbuf, cons.TAG_PROP_LEFT], self.nodes_list[-1], self.dom)
+                self.dad.xml_handler.pixbuf_element_to_xml([self.chars_counter, pixbuf, cons.TAG_PROP_LEFT],
+                                                           self.nodes_list[-1], self.dom)
                 self.chars_counter += 1
-            else: print "failed download of", img_path
+            else:
+                print "failed download of", img_path
             self.dad.statusbar.pop(self.dad.statusbar_context_id)
 
     def handle_endtag(self, tag):
@@ -2573,29 +2774,44 @@ class HTMLHandler(HTMLParser.HTMLParser):
         if self.curr_state == 0:
             if tag == cons.TAG_STYLE: self.curr_state = 1
         if self.curr_state == 1:
-            if tag == "p": self.rich_text_serialize(cons.CHAR_NEWLINE)
-            elif tag == "b": self.curr_attributes[cons.TAG_WEIGHT] = ""
-            elif tag == "i": self.curr_attributes[cons.TAG_STYLE] = ""
-            elif tag == "u": self.curr_attributes[cons.TAG_UNDERLINE] = ""
-            elif tag == "s": self.curr_attributes[cons.TAG_STRIKETHROUGH] = ""
+            if tag == "p":
+                self.rich_text_serialize(cons.CHAR_NEWLINE)
+            elif tag == "b":
+                self.curr_attributes[cons.TAG_WEIGHT] = ""
+            elif tag == "i":
+                self.curr_attributes[cons.TAG_STYLE] = ""
+            elif tag == "u":
+                self.curr_attributes[cons.TAG_UNDERLINE] = ""
+            elif tag == "s":
+                self.curr_attributes[cons.TAG_STRIKETHROUGH] = ""
             elif tag == "span":
                 if self.latest_span:
-                    if self.latest_span[-1] == cons.TAG_FOREGROUND: self.curr_attributes[cons.TAG_FOREGROUND] = ""
-                    elif self.latest_span[-1] == cons.TAG_BACKGROUND: self.curr_attributes[cons.TAG_BACKGROUND] = ""
-                    elif self.latest_span[-1] == cons.TAG_UNDERLINE: self.curr_attributes[cons.TAG_UNDERLINE] = ""
-                    elif self.latest_span[-1] == cons.TAG_STRIKETHROUGH: self.curr_attributes[cons.TAG_STRIKETHROUGH] = ""
-                    elif self.latest_span[-1] == cons.TAG_WEIGHT: self.curr_attributes[cons.TAG_WEIGHT] = ""
-                    elif self.latest_span[-1] == cons.TAG_STYLE: self.curr_attributes[cons.TAG_STYLE] = ""
+                    if self.latest_span[-1] == cons.TAG_FOREGROUND:
+                        self.curr_attributes[cons.TAG_FOREGROUND] = ""
+                    elif self.latest_span[-1] == cons.TAG_BACKGROUND:
+                        self.curr_attributes[cons.TAG_BACKGROUND] = ""
+                    elif self.latest_span[-1] == cons.TAG_UNDERLINE:
+                        self.curr_attributes[cons.TAG_UNDERLINE] = ""
+                    elif self.latest_span[-1] == cons.TAG_STRIKETHROUGH:
+                        self.curr_attributes[cons.TAG_STRIKETHROUGH] = ""
+                    elif self.latest_span[-1] == cons.TAG_WEIGHT:
+                        self.curr_attributes[cons.TAG_WEIGHT] = ""
+                    elif self.latest_span[-1] == cons.TAG_STYLE:
+                        self.curr_attributes[cons.TAG_STYLE] = ""
                     del self.latest_span[-1]
             elif tag == "font":
                 if self.latest_font == cons.TAG_FOREGROUND: self.curr_attributes[cons.TAG_FOREGROUND] = ""
-            elif tag in [cons.TAG_PROP_H1, cons.TAG_PROP_H2, cons.TAG_PROP_H3, cons.TAG_PROP_H4, cons.TAG_PROP_H5, cons.TAG_PROP_H6]:
+            elif tag in [cons.TAG_PROP_H1, cons.TAG_PROP_H2, cons.TAG_PROP_H3, cons.TAG_PROP_H4, cons.TAG_PROP_H5,
+                         cons.TAG_PROP_H6]:
                 self.curr_attributes[cons.TAG_SCALE] = ""
                 self.curr_attributes[cons.TAG_JUSTIFICATION] = ""
                 self.rich_text_serialize(cons.CHAR_NEWLINE)
-            elif tag == "a": self.curr_attributes[cons.TAG_LINK] = ""
-            elif tag == "li": self.rich_text_serialize(cons.CHAR_NEWLINE)
-            elif tag == "pre": self.pre_tag = ""
+            elif tag == "a":
+                self.curr_attributes[cons.TAG_LINK] = ""
+            elif tag == "li":
+                self.rich_text_serialize(cons.CHAR_NEWLINE)
+            elif tag == "pre":
+                self.pre_tag = ""
         elif self.curr_state == 2:
             if tag in ["td", "th"]:
                 self.curr_table[-1].append(self.curr_cell)
@@ -2603,8 +2819,8 @@ class HTMLHandler(HTMLParser.HTMLParser):
                 if len(self.curr_table) == 1:
                     self.curr_rows_span.append(self.curr_rowspan)
                 else:
-                    index = len(self.curr_table[-1])-1
-                    #print "self.curr_rows_span", self.curr_rows_span
+                    index = len(self.curr_table[-1]) - 1
+                    # print "self.curr_rows_span", self.curr_rows_span
                     while index >= len(self.curr_rows_span):
                         # rowspan in very first row
                         self.curr_rows_span.append(1)
@@ -2614,8 +2830,10 @@ class HTMLHandler(HTMLParser.HTMLParser):
                     else:
                         unos_found = 0
                         while unos_found < 2:
-                            if not unos_found: self.curr_table[-1].insert(index, "")
-                            else: self.curr_table[-1].append("")
+                            if not unos_found:
+                                self.curr_table[-1].insert(index, "")
+                            else:
+                                self.curr_table[-1].append("")
                             self.curr_rows_span[index] -= 1
                             index += 1
                             if index == len(self.curr_rows_span): break
@@ -2635,30 +2853,35 @@ class HTMLHandler(HTMLParser.HTMLParser):
                     text_inside_codebox = self.curr_table[0][0].strip()
                     if text_inside_codebox:
                         codebox_dict = {
-                        'frame_width': 300,
-                        'frame_height': 150,
-                        'width_in_pixels': True,
-                        'syntax_highlighting': cons.PLAIN_TEXT_ID,
-                        'highlight_brackets': False,
-                        'show_line_numbers': False,
-                        'fill_text': text_inside_codebox
+                            'frame_width': 300,
+                            'frame_height': 150,
+                            'width_in_pixels': True,
+                            'syntax_highlighting': cons.PLAIN_TEXT_ID,
+                            'highlight_brackets': False,
+                            'show_line_numbers': False,
+                            'fill_text': text_inside_codebox
                         }
-                        self.dad.xml_handler.codebox_element_to_xml([self.chars_counter, codebox_dict, cons.TAG_PROP_LEFT],
+                        self.dad.xml_handler.codebox_element_to_xml(
+                            [self.chars_counter, codebox_dict, cons.TAG_PROP_LEFT],
                             self.nodes_list[-1], self.dom)
                         self.chars_counter += 1
-                    else: print "empty codebox skip"
+                    else:
+                        print "empty codebox skip"
                 else:
                     # it's a table
-                    if not self.curr_table_header: self.curr_table.append([_("click me")]*len(self.curr_table[0]))
-                    else: self.curr_table.append(self.curr_table.pop(0))
+                    if not self.curr_table_header:
+                        self.curr_table.append([_("click me")] * len(self.curr_table[0]))
+                    else:
+                        self.curr_table.append(self.curr_table.pop(0))
                     table_dict = {'col_min': cons.TABLE_DEFAULT_COL_MIN,
                                   'col_max': cons.TABLE_DEFAULT_COL_MAX,
                                   'matrix': self.curr_table}
                     self.dad.xml_handler.table_element_to_xml([self.chars_counter, table_dict, cons.TAG_PROP_LEFT],
-                        self.nodes_list[-1], self.dom)
+                                                              self.nodes_list[-1], self.dom)
                     self.chars_counter += 1
                 self.rich_text_serialize(cons.CHAR_NEWLINE)
-            elif tag in ["p", "li"]: self.curr_cell += cons.CHAR_NEWLINE
+            elif tag in ["p", "li"]:
+                self.curr_cell += cons.CHAR_NEWLINE
 
     def handle_data(self, data):
         """Found Data"""
@@ -2666,14 +2889,16 @@ class HTMLHandler(HTMLParser.HTMLParser):
         if self.pre_tag == "p":
             self.rich_text_serialize(data)
             return
-        if self.in_a_tag: clean_data = data.replace(cons.CHAR_NEWLINE, cons.CHAR_SPACE)
-        else: clean_data = data.replace(cons.CHAR_NEWLINE, "")
+        if self.in_a_tag:
+            clean_data = data.replace(cons.CHAR_NEWLINE, cons.CHAR_SPACE)
+        else:
+            clean_data = data.replace(cons.CHAR_NEWLINE, "")
         if not clean_data or clean_data == cons.CHAR_TAB: return
         replacements = False
         out_data = []
         for char in clean_data:
             ord_char = ord(char)
-            #print ord_char
+            # print ord_char
             if ord_char == 0xa0:
                 out_data.append(cons.CHAR_SPACE)
                 replacements = True
@@ -2683,33 +2908,41 @@ class HTMLHandler(HTMLParser.HTMLParser):
                 out_data.append(char)
         if replacements:
             clean_data = "".join(out_data)
-        if self.curr_state == 1: self.rich_text_serialize(clean_data.replace(cons.CHAR_TAB, cons.CHAR_SPACE))
-        elif self.curr_state == 2: self.curr_cell += clean_data.replace(cons.CHAR_TAB, "")
+        if self.curr_state == 1:
+            self.rich_text_serialize(clean_data.replace(cons.CHAR_TAB, cons.CHAR_SPACE))
+        elif self.curr_state == 2:
+            self.curr_cell += clean_data.replace(cons.CHAR_TAB, "")
 
     def handle_entityref(self, name):
         """Found Entity Reference like &name;"""
         if self.curr_state == 0: return
-        #print name
+        # print name
         if name == "nbsp":
             unicode_char = cons.CHAR_SPACE
         elif name in htmlentitydefs.name2codepoint:
             unicode_char = unichr(htmlentitydefs.name2codepoint[name])
-        else: return
-        if self.curr_state == 1: self.rich_text_serialize(unicode_char)
-        elif self.curr_state == 2: self.curr_cell += unicode_char
+        else:
+            return
+        if self.curr_state == 1:
+            self.rich_text_serialize(unicode_char)
+        elif self.curr_state == 2:
+            self.curr_cell += unicode_char
 
     def handle_charref(self, name):
         """decimal and hexadecimal numeric character references of the form &#NNN; and &#xNNN;"""
         if self.curr_state == 0: return
         if name[0] in ['x', 'X']:
             unicode_num = int(name[1:], 16)
-        else: unicode_num = int(name)
-        #print unicode_num
-        if unicode_num == 160: # nbsp
-            unicode_num = 32 # space
+        else:
+            unicode_num = int(name)
+        # print unicode_num
+        if unicode_num == 160:  # nbsp
+            unicode_num = 32  # space
         unicode_char = unichr(unicode_num)
-        if self.curr_state == 1: self.rich_text_serialize(unicode_char)
-        elif self.curr_state == 2: self.curr_cell += unicode_char
+        if self.curr_state == 1:
+            self.rich_text_serialize(unicode_char)
+        elif self.curr_state == 2:
+            self.curr_cell += unicode_char
 
     def get_clipboard_selection_xml(self, input_string):
         """Parses the Given HTML String feeding the XML dom"""
@@ -2739,11 +2972,11 @@ class HTMLHandler(HTMLParser.HTMLParser):
         # curr_state 2: receiving table or codebox data
         if not HTMLCheck().is_html_ok(input_string):
             input_string = cons.HTML_HEADER % "" + input_string + cons.HTML_FOOTER
-        #print "###############"
-        #print input_string
-        #with open("clipboard.log", 'w') as fd:
-            #fd.write(input_string)
-        #print "###############"
+            # print "###############"
+            # print input_string
+            # with open("clipboard.log", 'w') as fd:
+            # fd.write(input_string)
+        # print "###############"
         self.num_bodies = len(re.findall("<body[^>]*>", input_string, re.IGNORECASE))
         self.feed(input_string)
 
@@ -2767,10 +3000,11 @@ class HTMLHandler(HTMLParser.HTMLParser):
                     if mime_type.lower() in [".html", ".htm"]:
                         self.add_file(full_element)
             elif os.path.isdir(full_element):
-                if os.path.isfile(full_element+".htm"):
-                    folder_file_same_name = element+".htm"
-                    self.add_file(full_element+".htm", do_pop=False)
-                else: self.add_node_with_content(full_element, "")
+                if os.path.isfile(full_element + ".htm"):
+                    folder_file_same_name = element + ".htm"
+                    self.add_file(full_element + ".htm", do_pop=False)
+                else:
+                    self.add_node_with_content(full_element, "")
                 self.add_folder(full_element)
                 self.nodes_list.pop()
 
@@ -2792,9 +3026,11 @@ class HTMLHandler(HTMLParser.HTMLParser):
         """Append Node and Fill Content"""
         self.nodes_list.append(self.dom.createElement("node"))
         node_name = os.path.basename(filepath)
-        if node_name.lower().endswith(".htm"): node_name = node_name[:-4]
-        elif node_name.lower().endswith(".html"): node_name = node_name[:-5]
-        #print node_name, len(self.nodes_list)
+        if node_name.lower().endswith(".htm"):
+            node_name = node_name[:-4]
+        elif node_name.lower().endswith(".html"):
+            node_name = node_name[:-5]
+        # print node_name, len(self.nodes_list)
         self.nodes_list[-1].setAttribute("name", node_name)
         self.nodes_list[-1].setAttribute("prog_lang", cons.RICH_TEXT_ID)
         self.nodes_list[-2].appendChild(self.nodes_list[-1])
@@ -2805,8 +3041,10 @@ class HTMLHandler(HTMLParser.HTMLParser):
         self.dom = xml.dom.minidom.Document()
         self.nodes_list = [self.dom.createElement(cons.APP_NAME)]
         self.dom.appendChild(self.nodes_list[0])
-        if filepath: self.add_file(filepath)
-        else: self.add_folder(folderpath)
+        if filepath:
+            self.add_file(filepath)
+        else:
+            self.add_folder(folderpath)
         return self.dom.toxml()
 
 
@@ -2819,14 +3057,19 @@ class HTMLCheck(HTMLParser.HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         """Encountered the beginning of a tag"""
-        if tag == "html" and self.steps == 0: self.steps = 1
-        elif tag == "head" and self.steps == 1: self.steps = 4
-        elif tag == "body" and self.steps == 5: self.steps = 6
+        if tag == "html" and self.steps == 0:
+            self.steps = 1
+        elif tag == "head" and self.steps == 1:
+            self.steps = 4
+        elif tag == "body" and self.steps == 5:
+            self.steps = 6
 
     def handle_endtag(self, tag):
         """Encountered the end of a tag"""
-        if tag == "head" and self.steps == 4: self.steps = 5
-        elif tag == "body" and self.steps == 6: self.steps = 7
+        if tag == "head" and self.steps == 4:
+            self.steps = 5
+        elif tag == "body" and self.steps == 6:
+            self.steps = 7
         if tag == "html" and self.steps == 7: self.steps = 8
 
     def is_html_ok(self, input_string):

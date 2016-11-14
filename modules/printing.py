@@ -19,9 +19,15 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #       MA 02110-1301, USA.
 
-import gtk, gobject, pango, cairo
-import copy, cgi
-import support, cons
+import cgi
+import copy
+import gobject
+import gtk
+
+import pango
+
+import cons
+import support
 
 BOX_OFFSET = 4
 
@@ -61,7 +67,8 @@ class PrintHandler:
         """Run a Ready Print Operation"""
         if self.pdf_filepath: print_operation.set_export_filename(self.pdf_filepath)
         print_operation_action = gtk.PRINT_OPERATION_ACTION_EXPORT if self.pdf_filepath else gtk.PRINT_OPERATION_ACTION_PRINT_DIALOG
-        try: res = print_operation.run(print_operation_action, parent)
+        try:
+            res = print_operation.run(print_operation_action, parent)
         except gobject.GError, ex:
             support.dialog_error("Error printing file:\n%s (exception catched)" % str(ex), parent)
         else:
@@ -81,7 +88,7 @@ class PrintHandler:
         self.pango_font = pango.FontDescription(text_font)
         self.codebox_font = pango.FontDescription(code_font)
         self.text_window_width = text_window_width
-        self.table_text_row_height = self.pango_font.get_size()/pango.SCALE
+        self.table_text_row_height = self.pango_font.get_size() / pango.SCALE
         self.table_line_thickness = 6
         self.pixbuf_table_codebox_vector = pixbuf_table_codebox_vector
         # pixbuf_table_codebox_vector is [ [ "pixbuf"/"table"/"codebox", [offset, pixbuf, alignment] ],... ]
@@ -100,11 +107,11 @@ class PrintHandler:
     def on_begin_print_text(self, operation, context, print_data):
         """Here we Compute the Lines Positions, the Number of Pages Needed and the Page Breaks"""
         self.page_width = context.get_width()
-        self.page_height = context.get_height() * 1.02 # tolerance at bottom of the page
+        self.page_height = context.get_height() * 1.02  # tolerance at bottom of the page
         any_image_resized = False
         layout_newline = context.create_pango_layout()
         layout_newline.set_font_description(self.pango_font)
-        layout_newline.set_width(int(self.page_width*pango.SCALE))
+        layout_newline.set_width(int(self.page_width * pango.SCALE))
         layout_newline.set_markup(cons.CHAR_NEWLINE)
         line_width, self.layout_newline_height = self.layout_line_get_width_height(layout_newline.get_line(0))
         while 1:
@@ -114,12 +121,12 @@ class PrintHandler:
             print_data.layout_is_new_line = []
             print_data.layout_num_lines = []
             print_data.all_lines_y = []
-            #print "print_data.text", print_data.text
+            # print "print_data.text", print_data.text
             for i, text_slot in enumerate(print_data.text):
                 print_data.layout.append(context.create_pango_layout())
                 print_data.layout[-1].set_font_description(self.pango_font)
-                print_data.layout[-1].set_width(int(self.page_width*pango.SCALE))
-                is_forced_page_break = text_slot.startswith(2*cons.CHAR_NEWPAGE)
+                print_data.layout[-1].set_width(int(self.page_width * pango.SCALE))
+                is_forced_page_break = text_slot.startswith(2 * cons.CHAR_NEWPAGE)
                 print_data.forced_page_break.append(is_forced_page_break)
                 print_data.layout[-1].set_markup(text_slot if not is_forced_page_break else text_slot[2:])
                 if text_slot == cons.CHAR_NEWLINE:
@@ -135,60 +142,61 @@ class PrintHandler:
             inline_pending_height = float(0)
             inline_starter = [0, 0]
             for i, layout in enumerate(print_data.layout):
-                #print "layout", i
+                # print "layout", i
                 # text
                 if print_data.forced_page_break[i] and curr_y > 0:
-                    #print "forced_page_break"
+                    # print "forced_page_break"
                     print_data.page_breaks.append(inline_starter)
                     curr_y = 0;
                 layout_line_idx = 0
                 while layout_line_idx < print_data.layout_num_lines[i]:
-                    #print "layout_line_idx", layout_line_idx
+                    # print "layout_line_idx", layout_line_idx
                     layout_line = print_data.layout[i].get_line(layout_line_idx)
                     line_width, line_height = self.layout_line_get_width_height(layout_line)
                     # process the line
                     if line_height > inline_pending_height: inline_pending_height = line_height
-                    if layout_line_idx < print_data.layout_num_lines[i]-1 or print_data.layout_is_new_line[i]:
+                    if layout_line_idx < print_data.layout_num_lines[i] - 1 or print_data.layout_is_new_line[i]:
                         if curr_y + inline_pending_height > self.page_height:
                             print_data.page_breaks.append(inline_starter)
-                            #print "added page break", inline_starter
+                            # print "added page break", inline_starter
                             curr_y = 0
                             if inline_pending_height > self.page_height:
-                                if self.pixbuf_table_codebox_vector[i-1][0] == "codebox"\
-                                and codebox_height > self.page_height:
-                                    self.codebox_long_split(i-1, context, print_data)
+                                if self.pixbuf_table_codebox_vector[i - 1][0] == "codebox" \
+                                        and codebox_height > self.page_height:
+                                    self.codebox_long_split(i - 1, context, print_data)
                                     exit_ok = False
-                                    break # go to a new main loop
-                                elif self.pixbuf_table_codebox_vector[i-1][0] == "table"\
-                                and table_height > self.page_height:
-                                    self.table_long_split(i-1, context, print_data)
+                                    break  # go to a new main loop
+                                elif self.pixbuf_table_codebox_vector[i - 1][0] == "table" \
+                                        and table_height > self.page_height:
+                                    self.table_long_split(i - 1, context, print_data)
                                     exit_ok = False
-                                    break # go to a new main loop
+                                    break  # go to a new main loop
                         curr_y += inline_pending_height
                         print_data.all_lines_y.append(curr_y)
-                        #print "added line y <%s> (%s, %s)" % (curr_y, i, layout_line_idx)
-                        inline_pending_height = 0 # reset the pending elements line to append
-                        inline_starter = [i, layout_line_idx+1]
+                        # print "added line y <%s> (%s, %s)" % (curr_y, i, layout_line_idx)
+                        inline_pending_height = 0  # reset the pending elements line to append
+                        inline_starter = [i, layout_line_idx + 1]
                     layout_line_idx += 1
-                if not exit_ok: break # go to a new main loop
+                if not exit_ok: break  # go to a new main loop
                 # pixbuf or table or codebox
-                if i < len(print_data.layout) - 1: # the latest element is supposed to be text
+                if i < len(print_data.layout) - 1:  # the latest element is supposed to be text
                     if self.pixbuf_table_codebox_vector[i][0] == "pixbuf":
                         pixbuf = self.pixbuf_table_codebox_vector[i][1][1]
                         pixbuf_was_resized = False
                         pixbuf_width = pixbuf.get_width()
                         pixbuf_height = pixbuf.get_height()
                         if pixbuf_width > self.page_width:
-                            image_w_h_ration = float(pixbuf_width)/pixbuf_height
+                            image_w_h_ration = float(pixbuf_width) / pixbuf_height
                             image_width = self.page_width
                             image_height = image_width / image_w_h_ration
                             pixbuf = pixbuf.scale_simple(int(image_width), int(image_height), gtk.gdk.INTERP_BILINEAR)
                             pixbuf_width = pixbuf.get_width()
                             pixbuf_height = pixbuf.get_height()
                             pixbuf_was_resized = True
-                        if pixbuf_height > (self.page_height-self.layout_newline_height-cons.WHITE_SPACE_BETW_PIXB_AND_TEXT):
-                            image_w_h_ration = float(pixbuf_width)/pixbuf_height
-                            image_height = self.page_height-self.layout_newline_height-cons.WHITE_SPACE_BETW_PIXB_AND_TEXT
+                        if pixbuf_height > (
+                                        self.page_height - self.layout_newline_height - cons.WHITE_SPACE_BETW_PIXB_AND_TEXT):
+                            image_w_h_ration = float(pixbuf_width) / pixbuf_height
+                            image_height = self.page_height - self.layout_newline_height - cons.WHITE_SPACE_BETW_PIXB_AND_TEXT
                             image_width = image_height * image_w_h_ration
                             pixbuf = pixbuf.scale_simple(int(image_width), int(image_height), gtk.gdk.INTERP_BILINEAR)
                             pixbuf_width = pixbuf.get_width()
@@ -204,31 +212,37 @@ class PrintHandler:
                         table_layouts = self.get_table_layouts(context, table)
                         table_grid = self.get_table_grid(table_layouts, table['col_min'])
                         table_height = self.get_table_height_from_grid(table_grid)
-                        if inline_pending_height < table_height+BOX_OFFSET: inline_pending_height = table_height+BOX_OFFSET
+                        if inline_pending_height < table_height + BOX_OFFSET: inline_pending_height = table_height + BOX_OFFSET
                     elif self.pixbuf_table_codebox_vector[i][0] == "codebox":
                         codebox_dict = self.pixbuf_table_codebox_vector[i][1][1]
                         codebox_layout = self.get_codebox_layout(context, codebox_dict)
                         codebox_height = self.get_height_from_layout(codebox_layout)
-                        if inline_pending_height < codebox_height+BOX_OFFSET: inline_pending_height = codebox_height+BOX_OFFSET
+                        if inline_pending_height < codebox_height + BOX_OFFSET: inline_pending_height = codebox_height + BOX_OFFSET
             if exit_ok: break
         operation.set_n_pages(len(print_data.page_breaks) + 1)
         if any_image_resized:
             self.dad.statusbar.pop(self.dad.statusbar_context_id)
-            self.dad.statusbar.push(self.dad.statusbar_context_id, _("Warning: One or More Images Were Reduced to Enter the Page")+" (%sx%s)" % (int(self.page_width), int(self.page_height)))
+            self.dad.statusbar.push(self.dad.statusbar_context_id,
+                                    _("Warning: One or More Images Were Reduced to Enter the Page") + " (%sx%s)" % (
+                                        int(self.page_width), int(self.page_height)))
 
     def on_draw_page_text(self, operation, context, page_nr, print_data):
         """This Function is Called For Each Page Set in on_begin_print_text"""
-        if page_nr == 0: start_line_num = [0, 0] # layout num, line num
-        else: start_line_num = print_data.page_breaks[page_nr - 1]
-        #print "start_line_num", start_line_num
-        if page_nr < len(print_data.page_breaks): end_line_num = print_data.page_breaks[page_nr]
-        else: end_line_num = [len(print_data.layout)-1, print_data.layout_num_lines[-1]]
-        #print "end_line_num", end_line_num
+        if page_nr == 0:
+            start_line_num = [0, 0]  # layout num, line num
+        else:
+            start_line_num = print_data.page_breaks[page_nr - 1]
+        # print "start_line_num", start_line_num
+        if page_nr < len(print_data.page_breaks):
+            end_line_num = print_data.page_breaks[page_nr]
+        else:
+            end_line_num = [len(print_data.layout) - 1, print_data.layout_num_lines[-1]]
+        # print "end_line_num", end_line_num
         cairo_context = context.get_cairo_context()
         cairo_context.set_source_rgb(0.5, 0.5, 0.5)
         cairo_context.set_font_size(12)
-        page_num_str = "%s/%s" % (page_nr+1, operation.get_property("n-pages"))
-        cairo_context.move_to(self.page_width/2, self.page_height+17)
+        page_num_str = "%s/%s" % (page_nr + 1, operation.get_property("n-pages"))
+        cairo_context.move_to(self.page_width / 2, self.page_height + 17)
         cairo_context.show_text(page_num_str)
         curr_x = float(0)
         i = start_line_num[0]
@@ -236,29 +250,29 @@ class PrintHandler:
         while i <= end_line_num[0]:
             # text
             cairo_context.set_source_rgb(0, 0, 0)
-            if i > start_line_num[0]: layout_line_idx = 0 # reset line idx
+            if i > start_line_num[0]: layout_line_idx = 0  # reset line idx
             while layout_line_idx < print_data.layout_num_lines[i]:
                 layout_line = print_data.layout[i].get_line(layout_line_idx)
                 line_width, line_height = self.layout_line_get_width_height(layout_line)
                 # process the line
                 if line_width > 0:
-                    #print "text (%s, %s) to (%s, %s)" % (line_width, line_height, curr_x, print_data.all_lines_y[self.y_idx])
+                    # print "text (%s, %s) to (%s, %s)" % (line_width, line_height, curr_x, print_data.all_lines_y[self.y_idx])
                     cairo_context.move_to(curr_x, print_data.all_lines_y[self.y_idx])
                     cairo_context.show_layout_line(layout_line)
                     curr_x += line_width
-                if layout_line_idx < print_data.layout_num_lines[i]-1 or print_data.layout_is_new_line[i]:
+                if layout_line_idx < print_data.layout_num_lines[i] - 1 or print_data.layout_is_new_line[i]:
                     curr_x = 0.0
                     self.y_idx += 1
-                    #print "new index value <%s> (%s, %s)" % (self.y_idx, i, layout_line_idx)
+                    # print "new index value <%s> (%s, %s)" % (self.y_idx, i, layout_line_idx)
                 layout_line_idx += 1
                 if i >= end_line_num[0] and layout_line_idx >= end_line_num[1]: return
             # pixbuf or table or codebox
-            if i < len(print_data.layout) - 1: # the latest element is supposed to be text
+            if i < len(print_data.layout) - 1:  # the latest element is supposed to be text
                 if self.pixbuf_table_codebox_vector[i][0] == "pixbuf":
                     pixbuf = self.pixbuf_table_codebox_vector[i][1][1]
                     pixbuf_width = pixbuf.get_width()
                     pixbuf_height = pixbuf.get_height()
-                    #print "pixbuf (%s, %s) to (%s, %s)" % (pixbuf_width, pixbuf_height, curr_x, print_data.all_lines_y[self.y_idx]-pixbuf_height)
+                    # print "pixbuf (%s, %s) to (%s, %s)" % (pixbuf_width, pixbuf_height, curr_x, print_data.all_lines_y[self.y_idx]-pixbuf_height)
                     cairo_context.set_source_pixbuf(pixbuf, curr_x, print_data.all_lines_y[self.y_idx] - pixbuf_height)
                     cairo_context.paint()
                     curr_x += pixbuf_width
@@ -285,7 +299,7 @@ class PrintHandler:
                     codebox_layout = self.get_codebox_layout(context, codebox_dict)
                     codebox_height = self.get_height_from_layout(codebox_layout)
                     codebox_width = self.get_width_from_layout(codebox_layout)
-                    #print "codebox (%s, %s) to (%s, %s)" % (codebox_width, codebox_height, curr_x, print_data.all_lines_y[self.y_idx]-codebox_height)
+                    # print "codebox (%s, %s) to (%s, %s)" % (codebox_width, codebox_height, curr_x, print_data.all_lines_y[self.y_idx]-codebox_height)
                     self.codebox_draw_box(cairo_context,
                                           curr_x,
                                           print_data.all_lines_y[self.y_idx] - codebox_height,
@@ -296,16 +310,18 @@ class PrintHandler:
                                            curr_x,
                                            print_data.all_lines_y[self.y_idx] - codebox_height)
                     curr_x += codebox_width
-            i += 1 # layout increment
+            i += 1  # layout increment
 
     def get_codebox_layout(self, context, codebox_dict):
         """Return the CodeBox Layout"""
         layout = context.create_pango_layout()
         layout.set_font_description(self.codebox_font)
-        if codebox_dict['width_in_pixels']: codebox_width = codebox_dict['frame_width']
-        else: codebox_width = self.text_window_width*codebox_dict['frame_width']/100
+        if codebox_dict['width_in_pixels']:
+            codebox_width = codebox_dict['frame_width']
+        else:
+            codebox_width = self.text_window_width * codebox_dict['frame_width'] / 100
         if codebox_width > self.page_width: codebox_width = self.page_width
-        layout.set_width(int(codebox_width*pango.SCALE))
+        layout.set_width(int(codebox_width * pango.SCALE))
         layout.set_wrap(pango.WRAP_WORD_CHAR)
         layout.set_markup(codebox_dict['fill_text'])
         return layout
@@ -318,7 +334,7 @@ class PrintHandler:
             layout_line = layout.get_line(layout_line_idx)
             line_width, line_height = self.layout_line_get_width_height(layout_line)
             height += line_height
-        return height + 2*cons.GRID_SLIP_OFFSET
+        return height + 2 * cons.GRID_SLIP_OFFSET
 
     def get_width_from_layout(self, layout):
         """Returns the Height given the Layout"""
@@ -328,7 +344,7 @@ class PrintHandler:
             layout_line = layout.get_line(layout_line_idx)
             line_width, line_height = self.layout_line_get_width_height(layout_line)
             if line_width > width: width = line_width
-        return width + 2*cons.GRID_SLIP_OFFSET
+        return width + 2 * cons.GRID_SLIP_OFFSET
 
     def get_table_layouts(self, context, table):
         """Return the Table Cells Layouts"""
@@ -340,7 +356,7 @@ class PrintHandler:
                 layout.set_font_description(self.pango_font)
                 cell_text = cgi.escape(cell_text)
                 if i == 0: cell_text = "<b>" + cell_text + "</b>"
-                layout.set_width(int(table['col_max']*pango.SCALE))
+                layout.set_width(int(table['col_max'] * pango.SCALE))
                 layout.set_wrap(pango.WRAP_WORD_CHAR)
                 layout.set_markup(cell_text)
                 table_layouts[i].append(layout)
@@ -453,7 +469,7 @@ class PrintHandler:
             table_layouts = self.get_table_layouts(context, table_dict_jolly)
             table_grid = self.get_table_grid(table_layouts, table_dict_jolly['col_min'])
             table_height = self.get_table_height_from_grid(table_grid)
-            if table_height+BOX_OFFSET > (self.page_height-self.layout_newline_height):
+            if table_height + BOX_OFFSET > (self.page_height - self.layout_newline_height):
                 # this slot is done
                 partial_table_matrix.pop()
                 partial_table_matrix_vec.append(partial_table_matrix)
@@ -463,10 +479,11 @@ class PrintHandler:
         # this is the last piece
         partial_table_matrix_vec.append(partial_table_matrix)
         for i, element in enumerate(partial_table_matrix_vec):
-            #print i, element
-            if i == 0: table_dict['matrix'] = element[1:] + [element[0]]
+            # print i, element
+            if i == 0:
+                table_dict['matrix'] = element[1:] + [element[0]]
             else:
-                index = idx+i
+                index = idx + i
                 # add a newline
                 print_data.text.insert(index, cons.CHAR_NEWLINE)
                 # add a codebox
@@ -485,9 +502,9 @@ class PrintHandler:
             if last_close < last_open:
                 non_closed_span = original_splitted_pango[i][last_open:]
                 end_non_closed_span_idx = non_closed_span.find(">")
-                non_closed_span = non_closed_span[:end_non_closed_span_idx+1]
+                non_closed_span = non_closed_span[:end_non_closed_span_idx + 1]
                 original_splitted_pango[i] += "</span>"
-                original_splitted_pango[i+1] = non_closed_span + original_splitted_pango[i+1]
+                original_splitted_pango[i + 1] = non_closed_span + original_splitted_pango[i + 1]
         splitted_pango = []
         codebox_dict_jolly = copy.deepcopy(codebox_dict)
         partial_pango_vec = []
@@ -500,17 +517,18 @@ class PrintHandler:
             codebox_dict_jolly['fill_text'] = partial_pango
             codebox_layout = self.get_codebox_layout(context, codebox_dict_jolly)
             codebox_height = self.get_height_from_layout(codebox_layout)
-            if codebox_height+BOX_OFFSET > (self.page_height-self.layout_newline_height):
+            if codebox_height + BOX_OFFSET > (self.page_height - self.layout_newline_height):
                 # this slot is done
                 partial_pango_vec.append(partial_pango_old)
-                original_splitted_pango = original_splitted_pango[len(splitted_pango)-1:]
+                original_splitted_pango = original_splitted_pango[len(splitted_pango) - 1:]
                 splitted_pango = []
         # this is the last piece
         partial_pango_vec.append(partial_pango)
         for i, element in enumerate(partial_pango_vec):
-            if i == 0: codebox_dict['fill_text'] = element
+            if i == 0:
+                codebox_dict['fill_text'] = element
             else:
-                index = idx+i
+                index = idx + i
                 # add a newline
                 print_data.text.insert(index, cons.CHAR_NEWLINE)
                 # add a codebox

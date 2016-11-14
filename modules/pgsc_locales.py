@@ -30,6 +30,7 @@ iso-code messages are installed on your system.
 import gettext
 import os
 import sqlite3
+
 import cons
 
 # public objects
@@ -48,15 +49,18 @@ _translator_country = gettext.translation('iso_3166', fallback=True).gettext
 # loading the database
 _database = sqlite3.connect(os.path.join(cons.GLADE_PATH, 'pgsc_locales.db'))
 
+
 class LanguageNotFound(Exception):
     """
     The specified language wasn't found in the database.
     """
 
+
 class CountryNotFound(Exception):
     """
     The specified country wasn't found in the database.
     """
+
 
 class Country(object):
     def __init__(self, rowid):
@@ -68,7 +72,7 @@ class Country(object):
         self.alpha_3 = country[3]
         self.numeric = country[4]
         self.translation = _translator_country(self.name)
-        
+
     @classmethod
     def get_country(cls, code, codec):
         country = _database.execute(
@@ -77,15 +81,15 @@ class Country(object):
         if country:
             return cls(country[0])
         raise CountryNotFound('code: %s, codec: %s' % (code, codec))
-    
+
     @classmethod
     def by_alpha_2(cls, code):
         return Country.get_country(code, 'alpha_2')
-    
+
     @classmethod
     def by_alpha_3(cls, code):
         return Country.get_country(code, 'alpha_3')
-    
+
     @classmethod
     def by_numeric(cls, code):
         return Country.get_country(code, 'numeric')
@@ -100,7 +104,7 @@ class Language(object):
         self.iso_639_2T = language[2]
         self.iso_639_1 = language[3]
         self.translation = _translator_language(self.name)
-        
+
     @classmethod
     def get_language(cls, code, codec):
         language = _database.execute(
@@ -109,25 +113,25 @@ class Language(object):
         if language:
             return cls(language[0])
         raise LanguageNotFound('code: %s, codec: %s' % (code, codec))
-        
+
     @classmethod
     def by_iso_639_2B(cls, code):
         return Language.get_language(code, 'iso_639_2B')
-    
+
     @classmethod
     def by_iso_639_2T(cls, code):
         return Language.get_language(code, 'iso_639_2T')
-    
+
     @classmethod
     def by_iso_639_1(cls, code):
         return Language.get_language(code, 'iso_639_1')
 
 
 def code_to_name(code, separator='_'):
-    """  
+    """
     Get the human readable and translated name of a language based on it's code.
-    
-    :param code: the code of the language (e.g. de_DE, en_US) 
+
+    :param code: the code of the language (e.g. de_DE, en_US)
     :param target: separator used to separate language from country
     :rtype: human readable and translated language name
     """
