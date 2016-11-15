@@ -101,7 +101,7 @@ TAG_JUSTIFICATION = "justification"
 TAG_LINK = "link"
 TAG_PROP_HEAVY = "heavy"
 TAG_PROP_ITALIC = "italic"
-TAG_PROP_MONOSPACE = "monospace"
+TAG_PROP_MONOSPACE = "Source Code Pro"
 TAG_PROP_SINGLE = "single"
 TAG_PROP_SMALL = "small"
 TAG_PROP_TRUE = "true"
@@ -129,6 +129,7 @@ PLAIN_TEXT_ID = "plain-text"
 STYLE_SCHEME_LIGHT = "classic"
 STYLE_SCHEME_DARK = "cobalt"
 STYLE_SCHEME_GRAY = "oblivion"
+STYLE_SCHEME_TANGO = "tango"
 ANCHOR_CHAR = GLADE_PATH + 'anchor.png'
 FILE_CHAR = GLADE_PATH + 'file_icon.png'
 

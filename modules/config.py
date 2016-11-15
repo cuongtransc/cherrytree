@@ -43,7 +43,7 @@ ICONS_SIZE = {1: gtk.ICON_SIZE_MENU, 2: gtk.ICON_SIZE_SMALL_TOOLBAR, 3: gtk.ICON
 
 LINK_CUSTOM_ACTION_DEFAULT_WEB = "firefox %s &"
 LINK_CUSTOM_ACTION_DEFAULT_FILE = "xdg-open %s &"
-DEFAULT_MONOSPACE_BG = "#7f7f7f"
+DEFAULT_MONOSPACE_BG = "#dddddd"
 MAX_SIZE_EMBFILE_MB_DEFAULT = 10
 HORIZONTAL_RULE = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 COLOR_PALETTE_DEFAULT = ["#000000", "#ffffff", "#7f7f7f", "#ff0000", "#a020f0",
@@ -56,7 +56,7 @@ SELWORD_CHARS_DEFAULT = unicode(".-@", cons.STR_UTF8, cons.STR_IGNORE)
 CHARS_LISTBUL_DEFAULT = unicode("•◇▪-→⇒", cons.STR_UTF8, cons.STR_IGNORE)
 CHARS_TOC_DEFAULT = unicode("▸•◇▪", cons.STR_UTF8, cons.STR_IGNORE)
 NODES_ON_NODE_NAME_HEADER_DEFAULT = 3
-TIMESTAMP_FORMAT_DEFAULT = "%Y/%m/%d - %H:%M"
+TIMESTAMP_FORMAT_DEFAULT = "%Y-%m-%d %H:%M:%S"
 SEPARATOR_ASCII_REPR = "---------"
 
 SPELL_CHECK_LANG_DEFAULT = locale.getdefaultlocale()[0]
@@ -323,11 +323,11 @@ def config_file_load(dad):
 
         section = "fonts"
         dad.text_font = cfg.get(section, "text_font") if cfg.has_option(section,
-                                                                        "text_font") else "Sans 9"  # default text font
+                                                                        "text_font") else "Open Sans 12"  # default text font
         dad.tree_font = cfg.get(section, "tree_font") if cfg.has_option(section,
-                                                                        "tree_font") else "Sans 8"  # default tree font
+                                                                        "tree_font") else "Open Sans 10"  # default tree font
         dad.code_font = cfg.get(section, "code_font") if cfg.has_option(section,
-                                                                        "code_font") else "Monospace 9"  # default code font
+                                                                        "code_font") else "Source Code Pro 10"  # default code font
 
         section = "colors"
         dad.rt_def_fg = cfg.get(section, "rt_def_fg") if cfg.has_option(section,
@@ -387,12 +387,12 @@ def config_file_load(dad):
         dad.curr_colors = {'f': None, 'b': None, 'n': None}
         dad.syntax_highlighting = cons.RICH_TEXT_ID
         dad.auto_syn_highl = "sh"
-        dad.style_scheme = cons.STYLE_SCHEME_DARK
-        dad.tree_font = "Sans 8"  # default tree font
-        dad.text_font = "Sans 9"  # default text font
-        dad.code_font = "Monospace 9"  # default code font
-        dad.rt_def_fg = cons.RICH_TEXT_DARK_FG
-        dad.rt_def_bg = cons.RICH_TEXT_DARK_BG
+        dad.style_scheme = cons.STYLE_SCHEME_TANGO
+        dad.tree_font = "Open Sans 10"  # default tree font
+        dad.text_font = "Open Sans 12"  # default text font
+        dad.code_font = "Source Code Pro 10"  # default code font
+        dad.rt_def_fg = cons.RICH_TEXT_LIGHT_FG
+        dad.rt_def_bg = cons.RICH_TEXT_LIGHT_BG
         dad.tt_def_fg = cons.TREE_TEXT_LIGHT_FG
         dad.tt_def_bg = cons.TREE_TEXT_LIGHT_BG
         dad.palette_list = COLOR_PALETTE_DEFAULT

@@ -148,7 +148,7 @@ span.code-node {
 }
 
 div.codebox, div.main code, div.main pre {
-    font-family: "Courier New", Courier, monospace;
+    font-family: "Source Code Pro", "Courier New", Courier, monospace;
     font-weight: normal;
     font-size: 13px;
     background-color: #EEEEEE;
