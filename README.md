@@ -15,7 +15,7 @@ sudo apt-get install -y p7zip-full python-appindicator python-dbus python-enchan
 ## Clone Source Code and Install Libraries
 
 ```sh
-git clone git@github.com:tranhuucuong91/cherrytree.git
+git clone https://github.com/tranhuucuong91/cherrytree
 
 cd git_cherrytree
 
