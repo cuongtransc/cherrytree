@@ -2,7 +2,7 @@
 #
 #       codeboxes.py
 #
-#       Copyright 2009-2016 Giuseppe Penone <giuspen@gmail.com>
+#       Copyright 2009-2017 Giuseppe Penone <giuspen@gmail.com>
 #
 #       This program is free software; you can redistribute it and/or modify
 #       it under the terms of the GNU General Public License as published by
@@ -19,15 +19,9 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #       MA 02110-1301, USA.
 
-import gtk
-import gtksourceview2
+import gtk, gtksourceview2, pango
 import os
-
-import pango
-
-import cons
-import menus
-import support
+import cons, menus, support, config
 
 DRAW_SPACES_FLAGS = gtksourceview2.DRAW_SPACES_ALL & ~gtksourceview2.DRAW_SPACES_NEWLINE
 CB_WIDTH_HEIGHT_STEP_PIX = 15
@@ -47,14 +41,14 @@ class CodeBoxesHandler:
         self.curr_h = 0
         self.key_down = False
 
-    def codebox_in_use(self):
+    def codebox_in_use_get_anchor(self):
         """Returns a CodeBox SourceView if Currently in Use or None"""
         if not self.curr_codebox_anchor: return None
         if not self.dad.curr_buffer: return None
         iter_sel_start = self.dad.curr_buffer.get_iter_at_mark(self.dad.curr_buffer.get_insert())
         anchor = iter_sel_start.get_child_anchor()
         if not anchor: return None
-        if "sourcebuffer" in dir(anchor): return anchor.sourceview
+        if "sourcebuffer" in dir(anchor): return anchor
         return None
 
     def codebox_cut(self, *args):
@@ -87,32 +81,30 @@ class CodeBoxesHandler:
         """Opens the CodeBox Handle Dialog"""
         dialog = gtk.Dialog(title=title,
                             parent=self.dad.window,
-                            flags=gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+                            flags=gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT,
                             buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT,
-                                     gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+                            gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
         dialog.set_default_size(300, -1)
         dialog.set_position(gtk.WIN_POS_CENTER_ON_PARENT)
 
-        combobox_prog_lang = gtk.ComboBox(model=self.dad.prog_lang_liststore)
-        cell = gtk.CellRendererText()
-        combobox_prog_lang.pack_start(cell, True)
-        combobox_prog_lang.add_attribute(cell, 'text', 0)
-        combobox_value = self.dad.codebox_syn_highl if self.dad.codebox_syn_highl != cons.PLAIN_TEXT_ID else self.dad.auto_syn_highl
-        combobox_iter = self.dad.get_combobox_iter_from_value(self.dad.prog_lang_liststore, 1, combobox_value)
-        combobox_prog_lang.set_active_iter(combobox_iter)
+        button_prog_lang = gtk.Button()
+        button_label = self.dad.codebox_syn_highl if self.dad.codebox_syn_highl != cons.PLAIN_TEXT_ID else self.dad.auto_syn_highl
+        button_stock_id = config.get_stock_id_for_code_type(button_label)
+        button_prog_lang.set_label(button_label)
+        button_prog_lang.set_image(gtk.image_new_from_stock(button_stock_id, gtk.ICON_SIZE_MENU))
         radiobutton_plain_text = gtk.RadioButton(label=_("Plain Text"))
         radiobutton_auto_syntax_highl = gtk.RadioButton(label=_("Automatic Syntax Highlighting"))
         radiobutton_auto_syntax_highl.set_group(radiobutton_plain_text)
         if self.dad.codebox_syn_highl == cons.PLAIN_TEXT_ID:
             radiobutton_plain_text.set_active(True)
-            combobox_prog_lang.set_sensitive(False)
+            button_prog_lang.set_sensitive(False)
         else:
             radiobutton_auto_syntax_highl.set_active(True)
         type_vbox = gtk.VBox()
         type_vbox.pack_start(radiobutton_plain_text)
         type_vbox.pack_start(radiobutton_auto_syntax_highl)
-        type_vbox.pack_start(combobox_prog_lang)
-        type_frame = gtk.Frame(label="<b>" + _("Type") + "</b>")
+        type_vbox.pack_start(button_prog_lang)
+        type_frame = gtk.Frame(label="<b>"+_("Type")+"</b>")
         type_frame.get_label_widget().set_use_markup(True)
         type_frame.set_shadow_type(gtk.SHADOW_NONE)
         type_frame.add(type_vbox)
@@ -151,7 +143,7 @@ class CodeBoxesHandler:
         size_align.set_padding(0, 6, 6, 6)
         size_align.add(vbox_size)
 
-        size_frame = gtk.Frame(label="<b>" + _("Size") + "</b>")
+        size_frame = gtk.Frame(label="<b>"+_("Size")+"</b>")
         size_frame.get_label_widget().set_use_markup(True)
         size_frame.set_shadow_type(gtk.SHADOW_NONE)
         size_frame.add(size_align)
@@ -167,7 +159,7 @@ class CodeBoxesHandler:
         opt_align.set_padding(6, 6, 6, 6)
         opt_align.add(vbox_options)
 
-        options_frame = gtk.Frame(label="<b>" + _("Options") + "</b>")
+        options_frame = gtk.Frame(label="<b>"+_("Options")+"</b>")
         options_frame.get_label_widget().set_use_markup(True)
         options_frame.set_shadow_type(gtk.SHADOW_NONE)
         options_frame.add(opt_align)
@@ -178,29 +170,33 @@ class CodeBoxesHandler:
         content_area.pack_start(size_frame)
         content_area.pack_start(options_frame)
         content_area.show_all()
-
+        def on_button_prog_lang_clicked(button):
+            icon_n_key_list = []
+            for key in self.dad.available_languages:
+                stock_id = config.get_stock_id_for_code_type(key)
+                icon_n_key_list.append([key, stock_id, key])
+            sel_key = support.dialog_choose_element_in_list(self.dad.window, _("Automatic Syntax Highlighting"), [], "", icon_n_key_list)
+            if sel_key:
+                button.set_label(sel_key)
+                button.set_image(gtk.image_new_from_stock(sel_key, gtk.ICON_SIZE_MENU))
+        button_prog_lang.connect('clicked', on_button_prog_lang_clicked)
         def on_radiobutton_auto_syntax_highl_toggled(radiobutton):
-            combobox_prog_lang.set_sensitive(radiobutton.get_active())
-
+            button_prog_lang.set_sensitive(radiobutton.get_active())
         def on_key_press_codeboxhandle(widget, event):
             keyname = gtk.gdk.keyval_name(event.keyval)
             if keyname == cons.STR_KEY_RETURN:
                 spinbutton_width.update()
                 spinbutton_height.update()
-                try:
-                    dialog.get_widget_for_response(gtk.RESPONSE_ACCEPT).clicked()
-                except:
-                    print cons.STR_PYGTK_222_REQUIRED
+                try: dialog.get_widget_for_response(gtk.RESPONSE_ACCEPT).clicked()
+                except: print cons.STR_PYGTK_222_REQUIRED
                 return True
             return False
-
         def on_radiobutton_codebox_pixels_toggled(radiobutton):
             if radiobutton.get_active():
                 spinbutton_width.set_value(700)
             else:
                 if spinbutton_width.get_value() > 100:
                     spinbutton_width.set_value(90)
-
         radiobutton_auto_syntax_highl.connect("toggled", on_radiobutton_auto_syntax_highl_toggled)
         dialog.connect('key_press_event', on_key_press_codeboxhandle)
         radiobutton_codebox_pixels.connect('toggled', on_radiobutton_codebox_pixels_toggled)
@@ -215,7 +211,7 @@ class CodeBoxesHandler:
             if radiobutton_plain_text.get_active():
                 self.dad.codebox_syn_highl = cons.PLAIN_TEXT_ID
             else:
-                self.dad.codebox_syn_highl = self.dad.prog_lang_liststore[combobox_prog_lang.get_active_iter()][1]
+                self.dad.codebox_syn_highl = button_prog_lang.get_label()
             return True
         return False
 
@@ -223,19 +219,17 @@ class CodeBoxesHandler:
         """Insert Code Box"""
         if self.dad.curr_buffer.get_has_selection():
             iter_sel_start, iter_sel_end = self.dad.curr_buffer.get_selection_bounds()
-            fill_text = unicode(self.dad.curr_buffer.get_text(iter_sel_start, iter_sel_end), cons.STR_UTF8,
-                                cons.STR_IGNORE)
-        else:
-            fill_text = None
+            fill_text = unicode(self.dad.curr_buffer.get_text(iter_sel_start, iter_sel_end), cons.STR_UTF8, cons.STR_IGNORE)
+        else: fill_text = None
         if not self.dialog_codeboxhandle(_("Insert a CodeBox")): return
         codebox_dict = {
-            'frame_width': int(self.dad.codebox_width),
-            'frame_height': int(self.dad.codebox_height),
-            'width_in_pixels': self.dad.codebox_width_pixels,
-            'syntax_highlighting': self.dad.codebox_syn_highl,
-            'highlight_brackets': self.dad.codebox_match_bra,
-            'show_line_numbers': self.dad.codebox_line_num,
-            'fill_text': fill_text
+           'frame_width': int(self.dad.codebox_width),
+           'frame_height': int(self.dad.codebox_height),
+           'width_in_pixels': self.dad.codebox_width_pixels,
+           'syntax_highlighting': self.dad.codebox_syn_highl,
+           'highlight_brackets': self.dad.codebox_match_bra,
+           'show_line_numbers': self.dad.codebox_line_num,
+           'fill_text': fill_text
         }
         if fill_text: self.dad.curr_buffer.delete(iter_sel_start, iter_sel_end)
         iter_insert = self.dad.curr_buffer.get_iter_at_mark(self.dad.curr_buffer.get_insert())
@@ -283,10 +277,8 @@ class CodeBoxesHandler:
         anchor.sourceview.connect("motion-notify-event", self.on_sourceview_motion_notify_event_codebox)
         anchor.sourceview.connect("copy-clipboard", self.dad.clipboard_handler.copy, True)
         anchor.sourceview.connect("cut-clipboard", self.dad.clipboard_handler.cut, True)
-        if self.dad.line_wrapping:
-            anchor.sourceview.set_wrap_mode(gtk.WRAP_WORD)
-        else:
-            anchor.sourceview.set_wrap_mode(gtk.WRAP_NONE)
+        if self.dad.line_wrapping: anchor.sourceview.set_wrap_mode(gtk.WRAP_WORD)
+        else: anchor.sourceview.set_wrap_mode(gtk.WRAP_NONE)
         anchor.scrolledwindow = gtk.ScrolledWindow()
         anchor.scrolledwindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         anchor.scrolledwindow.add(anchor.sourceview)
@@ -312,7 +304,7 @@ class CodeBoxesHandler:
 
     def codebox_increase_width(self, *args):
         """Increase CodeBox Width"""
-        if self.dad.is_curr_node_read_only(): return
+        if self.dad.get_node_read_only(): return
         if self.curr_codebox_anchor.width_in_pixels:
             self.codebox_change_width_height(self.curr_codebox_anchor.frame_width + CB_WIDTH_HEIGHT_STEP_PIX, 0)
         else:
@@ -320,7 +312,7 @@ class CodeBoxesHandler:
 
     def codebox_decrease_width(self, *args):
         """Decrease CodeBox Width"""
-        if self.dad.is_curr_node_read_only(): return
+        if self.dad.get_node_read_only(): return
         if self.curr_codebox_anchor.width_in_pixels:
             if self.curr_codebox_anchor.frame_width - CB_WIDTH_HEIGHT_STEP_PIX >= CB_WIDTH_LIMIT_MIN:
                 self.codebox_change_width_height(self.curr_codebox_anchor.frame_width - CB_WIDTH_HEIGHT_STEP_PIX, 0)
@@ -330,21 +322,19 @@ class CodeBoxesHandler:
 
     def codebox_increase_height(self, *args):
         """Increase CodeBox Height"""
-        if self.dad.is_curr_node_read_only(): return
+        if self.dad.get_node_read_only(): return
         self.codebox_change_width_height(0, self.curr_codebox_anchor.frame_height + CB_WIDTH_HEIGHT_STEP_PIX)
 
     def codebox_decrease_height(self, *args):
         """Decrease CodeBox Height"""
-        if self.dad.is_curr_node_read_only(): return
+        if self.dad.get_node_read_only(): return
         if self.curr_codebox_anchor.frame_height - CB_WIDTH_HEIGHT_STEP_PIX >= CB_HEIGHT_LIMIT_MIN:
             self.codebox_change_width_height(0, self.curr_codebox_anchor.frame_height - CB_WIDTH_HEIGHT_STEP_PIX)
 
     def codebox_apply_width_height(self, anchor, from_shortcut=False):
         """Apply Width and Height Changes to CodeBox"""
-        if anchor.width_in_pixels:
-            frame_width = anchor.frame_width
-        else:
-            frame_width = self.dad.get_text_window_width() * anchor.frame_width / 100
+        if anchor.width_in_pixels: frame_width = anchor.frame_width
+        else: frame_width = self.dad.get_text_window_width()*anchor.frame_width/100
         anchor.frame.set_size_request(frame_width, anchor.frame_height)
         if from_shortcut:
             self.dad.update_window_save_needed("nbuf", True)
@@ -379,8 +369,7 @@ class CodeBoxesHandler:
         if not filepath: return
         self.dad.pick_dir_cbox = os.path.dirname(filepath)
         with open(filepath, 'w') as fd:
-            fd.write(
-                self.curr_codebox_anchor.sourcebuffer.get_text(*self.curr_codebox_anchor.sourcebuffer.get_bounds()))
+            fd.write(self.curr_codebox_anchor.sourcebuffer.get_text(*self.curr_codebox_anchor.sourcebuffer.get_bounds()))
 
     def codebox_change_properties(self, action):
         """Change CodeBox Properties"""
@@ -393,8 +382,7 @@ class CodeBoxesHandler:
         self.dad.codebox_syn_highl = self.curr_codebox_anchor.syntax_highlighting
         if not self.dialog_codeboxhandle(_("Edit CodeBox")): return
         self.curr_codebox_anchor.syntax_highlighting = self.dad.codebox_syn_highl
-        self.dad.set_sourcebuffer_syntax_highlight(self.curr_codebox_anchor.sourcebuffer,
-                                                   self.curr_codebox_anchor.syntax_highlighting)
+        self.dad.set_sourcebuffer_syntax_highlight(self.curr_codebox_anchor.sourcebuffer, self.curr_codebox_anchor.syntax_highlighting)
         if self.curr_codebox_anchor.syntax_highlighting == cons.PLAIN_TEXT_ID:
             self.curr_codebox_anchor.sourceview.modify_font(pango.FontDescription(self.dad.text_font))
         else:
@@ -403,8 +391,7 @@ class CodeBoxesHandler:
         self.curr_codebox_anchor.frame_height = int(self.dad.codebox_height)
         self.curr_codebox_anchor.width_in_pixels = self.dad.codebox_width_pixels
         self.curr_codebox_anchor.highlight_brackets = self.dad.codebox_match_bra
-        self.curr_codebox_anchor.sourcebuffer.set_highlight_matching_brackets(
-            self.curr_codebox_anchor.highlight_brackets)
+        self.curr_codebox_anchor.sourcebuffer.set_highlight_matching_brackets(self.curr_codebox_anchor.highlight_brackets)
         self.curr_codebox_anchor.show_line_numbers = self.dad.codebox_line_num
         self.curr_codebox_anchor.sourceview.set_show_line_numbers(self.curr_codebox_anchor.show_line_numbers)
         self.codebox_apply_width_height(self.curr_codebox_anchor)
@@ -418,8 +405,7 @@ class CodeBoxesHandler:
         elif event.type == gtk.gdk.BUTTON_PRESS:
             return support.on_sourceview_event_after_button_press(self.dad, text_view, event)
         elif event.type == gtk.gdk.KEY_PRESS:
-            return support.on_sourceview_event_after_key_press(self.dad, text_view, event,
-                                                               self.curr_codebox_anchor.syntax_highlighting)
+            return support.on_sourceview_event_after_key_press(self.dad, text_view, event, self.curr_codebox_anchor.syntax_highlighting)
         return False
 
     def on_vscrollbar_event_after(self, vscrollbar, event, anchor):
@@ -427,11 +413,8 @@ class CodeBoxesHandler:
         if not self.dad.user_active or self.curr_codebox_anchor != anchor: return False
         if self.dad.codebox_auto_resize and event.type == gtk.gdk.EXPOSE:
             curr_v = vscrollbar.get_value()
-            # print curr_v+vscrollbar.get_adjustment().page_size, vscrollbar.get_adjustment().upper
-            if curr_v and (
-                        (curr_v + vscrollbar.get_adjustment().page_size) >= (
-                        vscrollbar.get_adjustment().upper - 20)) and (
-                        vscrollbar.get_adjustment().page_size > curr_v):
+            #print curr_v+vscrollbar.get_adjustment().page_size, vscrollbar.get_adjustment().upper
+            if curr_v and ((curr_v+vscrollbar.get_adjustment().page_size) >= (vscrollbar.get_adjustment().upper-20)) and (vscrollbar.get_adjustment().page_size > curr_v):
                 # 1) the scrollbar is visible
                 # 2) we are at the scrolling end
                 # 3) the scrolling area is little, this step will probably cause the scrollbar to hide again
@@ -444,11 +427,8 @@ class CodeBoxesHandler:
         if not self.dad.user_active or self.curr_codebox_anchor != anchor: return False
         if self.dad.codebox_auto_resize and event.type == gtk.gdk.EXPOSE:
             curr_h = hscrollbar.get_value()
-            # print curr_h+hscrollbar.get_adjustment().page_size, hscrollbar.get_adjustment().upper
-            if curr_h and (
-                        (curr_h + hscrollbar.get_adjustment().page_size) >= (
-                        hscrollbar.get_adjustment().upper - 20)) and (
-                        hscrollbar.get_adjustment().page_size > curr_h):
+            #print curr_h+hscrollbar.get_adjustment().page_size, hscrollbar.get_adjustment().upper
+            if curr_h and ((curr_h+hscrollbar.get_adjustment().page_size) >= (hscrollbar.get_adjustment().upper-20)) and (hscrollbar.get_adjustment().page_size > curr_h):
                 # 1) the scrollbar is visible
                 # 2) we are at the scrolling end
                 # 3) the scrolling area is little, this step will probably cause the scrollbar to hide again
@@ -472,13 +452,11 @@ class CodeBoxesHandler:
             if keyname == "period":
                 if event.state & gtk.gdk.MOD1_MASK:
                     self.codebox_decrease_width()
-                else:
-                    self.codebox_increase_width()
+                else: self.codebox_increase_width()
             elif keyname == "comma":
                 if event.state & gtk.gdk.MOD1_MASK:
                     self.codebox_decrease_height()
-                else:
-                    self.codebox_increase_height()
+                else: self.codebox_increase_height()
             elif keyname == "space":
                 text_iter = self.dad.curr_buffer.get_iter_at_child_anchor(self.curr_codebox_anchor)
                 text_iter.forward_char()
@@ -519,7 +497,7 @@ class CodeBoxesHandler:
     def on_sourceview_motion_notify_event_codebox(self, text_view, event):
         """Update the cursor image if the pointer moved"""
         if not self.dad.user_active: return False
-        text_view.set_editable(not self.dad.is_curr_node_read_only())
+        text_view.set_editable(not self.dad.get_node_read_only())
         x, y = text_view.window_to_buffer_coords(gtk.TEXT_WINDOW_TEXT, int(event.x), int(event.y))
         support.sourceview_cursor_and_tooltips_handler(self.dad, text_view, x, y)
         return False

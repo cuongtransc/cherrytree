@@ -89,4 +89,4 @@ crashlytics-build.properties
 # Ignore language translation
 *.mo
 linux/cherrytree.1.gz
-
+7za.exe

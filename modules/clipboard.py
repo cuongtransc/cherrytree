@@ -2,7 +2,7 @@
 #
 #       clipboard.py
 #
-#       Copyright 2009-2016 Giuseppe Penone <giuspen@gmail.com>
+#       Copyright 2009-2017 Giuseppe Penone <giuspen@gmail.com>
 #
 #       This program is free software; you can redistribute it and/or modify
 #       it under the terms of the GNU General Public License as published by
@@ -19,18 +19,18 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #       MA 02110-1301, USA.
 
-import base64
 import gtk
-import mimetypes
 import os
-import re
 import xml.dom.minidom
-
+import re
+import base64
+import mimetypes
 import cons
+import machines
 import exports
 import imports
-import machines
 import support
+
 
 TARGET_CTD_PLAIN_TEXT = 'UTF8_STRING'
 TARGET_CTD_RICH_TEXT = 'CTD_RICH'
@@ -66,7 +66,7 @@ class Win32HtmlFormat:
     def encode(self, html_in):
         fragment = html_in.encode(cons.STR_UTF8)
         head = ""
-        source = cons.APP_NAME + cons.VERSION
+        source = cons.APP_NAME+cons.VERSION
 
         html = self.DEFAULT_HTML_BODY % (head, fragment)
         fragmentStart = html.index(fragment)
@@ -77,13 +77,12 @@ class Win32HtmlFormat:
         lenPrefix = len(dummyPrefix)
 
         prefix = self.MARKER_BLOCK_OUTPUT % (
-            lenPrefix, len(html) + lenPrefix,
-            fragmentStart + lenPrefix, fragmentEnd + lenPrefix,
-            fragmentStart + lenPrefix, fragmentEnd + lenPrefix,
+            lenPrefix, len(html)+lenPrefix,
+            fragmentStart+lenPrefix, fragmentEnd+lenPrefix,
+            fragmentStart+lenPrefix, fragmentEnd+lenPrefix,
             source
         )
         return prefix + html
-
 
 class ClipboardHandler:
     """Handler of Clipboard"""
@@ -105,8 +104,7 @@ class ClipboardHandler:
                 print "copy-clipboard not overridden for num_chars", num_chars
             else:
                 text_view.stop_emission("copy-clipboard")
-                self.selection_to_clipboard(text_buffer, text_view, iter_sel_start, iter_sel_end, num_chars,
-                                            from_codebox)
+                self.selection_to_clipboard(text_buffer, text_view, iter_sel_start, iter_sel_end, num_chars, from_codebox)
         self.force_plain_text = False
 
     def cut(self, text_view, from_codebox):
@@ -119,8 +117,7 @@ class ClipboardHandler:
                 print "cut-clipboard not overridden for num_chars", num_chars
             else:
                 text_view.stop_emission("cut-clipboard")
-                self.selection_to_clipboard(text_buffer, text_view, iter_sel_start, iter_sel_end, num_chars,
-                                            from_codebox)
+                self.selection_to_clipboard(text_buffer, text_view, iter_sel_start, iter_sel_end, num_chars, from_codebox)
                 if self.dad.is_curr_node_not_read_only_or_error():
                     text_buffer.delete_selection(True, text_view.get_editable())
                     text_view.grab_focus()
@@ -157,13 +154,11 @@ class ClipboardHandler:
                     html_text = self.dad.html_handler.table_export_to_html(table_dict)
                     txt_handler = exports.Export2Txt(self.dad)
                     text_offsets_range = [iter_sel_start.get_offset(), iter_sel_end.get_offset()]
-                    plain_text = txt_handler.node_export_to_txt(text_buffer, "", sel_range=text_offsets_range,
-                                                                check_link_target=True)
-                    self.clipboard.set_with_data(
-                        [(t, 0, 0) for t in (TARGET_CTD_TABLE, TARGETS_HTML[0], TARGET_CTD_PLAIN_TEXT)],
-                        self.get_func,
-                        self.clear_func,
-                        (plain_text, None, html_text, table_dict))
+                    plain_text = txt_handler.node_export_to_txt(text_buffer, "", sel_range=text_offsets_range, check_link_target=True)
+                    self.clipboard.set_with_data([(t, 0, 0) for t in (TARGET_CTD_TABLE, TARGETS_HTML[0], TARGET_CTD_PLAIN_TEXT)],
+                                                 self.get_func,
+                                                 self.clear_func,
+                                                 (plain_text, None, html_text, table_dict))
                     return
                 elif "sourcebuffer" in anchor_dir:
                     codebox_dict = self.dad.state_machine.codebox_to_dict(anchor, for_print=0)
@@ -171,22 +166,19 @@ class ClipboardHandler:
                     html_text = self.dad.html_handler.codebox_export_to_html(codebox_dict_html)
                     txt_handler = exports.Export2Txt(self.dad)
                     text_offsets_range = [iter_sel_start.get_offset(), iter_sel_end.get_offset()]
-                    plain_text = txt_handler.node_export_to_txt(text_buffer, "", sel_range=text_offsets_range,
-                                                                check_link_target=True)
-                    self.clipboard.set_with_data(
-                        [(t, 0, 0) for t in (TARGET_CTD_CODEBOX, TARGETS_HTML[0], TARGET_CTD_PLAIN_TEXT)],
-                        self.get_func,
-                        self.clear_func,
-                        (plain_text, None, html_text, codebox_dict))
+                    plain_text = txt_handler.node_export_to_txt(text_buffer, "", sel_range=text_offsets_range, check_link_target=True)
+                    self.clipboard.set_with_data([(t, 0, 0) for t in (TARGET_CTD_CODEBOX, TARGETS_HTML[0], TARGET_CTD_PLAIN_TEXT)],
+                                                 self.get_func,
+                                                 self.clear_func,
+                                                 (plain_text, None, html_text, codebox_dict))
                     return
         if not os.path.isdir(cons.TMP_FOLDER): os.mkdir(cons.TMP_FOLDER)
         html_text = self.dad.html_handler.selection_export_to_html(text_buffer, iter_sel_start, iter_sel_end,
-                                                                   self.dad.syntax_highlighting if not from_codebox else cons.PLAIN_TEXT_ID)
+            self.dad.syntax_highlighting if not from_codebox else cons.PLAIN_TEXT_ID)
         if not from_codebox and self.dad.syntax_highlighting == cons.RICH_TEXT_ID:
             txt_handler = exports.Export2Txt(self.dad)
             text_offsets_range = [iter_sel_start.get_offset(), iter_sel_end.get_offset()]
-            plain_text = txt_handler.node_export_to_txt(text_buffer, "", sel_range=text_offsets_range,
-                                                        check_link_target=True)
+            plain_text = txt_handler.node_export_to_txt(text_buffer, "", sel_range=text_offsets_range, check_link_target=True)
             rich_text = self.rich_text_get_from_text_buffer_selection(text_buffer, iter_sel_start, iter_sel_end)
             if not self.force_plain_text:
                 targets_vector = [TARGET_CTD_PLAIN_TEXT, TARGET_CTD_RICH_TEXT, TARGETS_HTML[0], TARGETS_HTML[1]]
@@ -195,9 +187,9 @@ class ClipboardHandler:
             else:
                 targets_vector = [TARGET_CTD_PLAIN_TEXT]
             self.clipboard.set_with_data([(t, 0, 0) for t in targets_vector],
-                                         self.get_func,
-                                         self.clear_func,
-                                         (plain_text, rich_text, html_text, pixbuf_target))
+                self.get_func,
+                self.clear_func,
+                (plain_text, rich_text, html_text, pixbuf_target))
         else:
             plain_text = text_buffer.get_text(iter_sel_start, iter_sel_end)
             if not self.force_plain_text:
@@ -212,12 +204,10 @@ class ClipboardHandler:
     def get_func(self, clipboard, selectiondata, info, data):
         """Connected with clipboard.set_with_data"""
         target = selectiondata.get_target()
-        if target == TARGET_CTD_PLAIN_TEXT:
-            selectiondata.set(target, 8, data[0])
-        elif target == TARGET_CTD_RICH_TEXT:
-            selectiondata.set('UTF8_STRING', 8, data[1])
+        if target == TARGET_CTD_PLAIN_TEXT: selectiondata.set(target, 8, data[0])
+        elif target == TARGET_CTD_RICH_TEXT: selectiondata.set('UTF8_STRING', 8, data[1])
         elif target in TARGETS_HTML:
-            # print target
+            #print target
             if not cons.IS_WIN_OS:
                 selectiondata.set(target, 8, data[2])
             else:
@@ -233,8 +223,7 @@ class ClipboardHandler:
             dom = xml.dom.minidom.Document()
             self.dad.xml_handler.table_element_to_xml([0, data[3], cons.TAG_PROP_LEFT], dom, dom)
             selectiondata.set('UTF8_STRING', 8, dom.toxml())
-        elif target == TARGETS_IMAGES[0]:
-            selectiondata.set_pixbuf(data[3])
+        elif target == TARGETS_IMAGES[0]: selectiondata.set_pixbuf(data[3])
 
     def clear_func(self, clipboard, data):
         """Connected with clipboard.set_with_data"""
@@ -254,7 +243,7 @@ class ClipboardHandler:
                     self.clipboard.request_contents(target, self.to_plain_text)
                     return
             self.force_plain_text = False
-        # print targets
+        #print targets
         if self.dad.syntax_highlighting == cons.RICH_TEXT_ID:
             if TARGET_CTD_RICH_TEXT in targets:
                 self.clipboard.request_contents(TARGET_CTD_RICH_TEXT, self.to_rich_text)
@@ -306,10 +295,9 @@ class ClipboardHandler:
                             pixbuf = gtk.gdk.pixbuf_new_from_file(file_path)
                             self.dad.image_insert(iter_insert, pixbuf)
                             iter_insert = self.dad.curr_buffer.get_iter_at_mark(self.dad.curr_buffer.get_insert())
-                            self.dad.curr_buffer.insert(iter_insert, 3 * cons.CHAR_SPACE)
+                            self.dad.curr_buffer.insert(iter_insert, 3*cons.CHAR_SPACE)
                             continue
-                        except:
-                            pass
+                        except: pass
                     if os.path.isdir(file_path):
                         property_value = "fold %s" % base64.b64encode(file_path)
                     elif os.path.isfile(file_path):
@@ -330,25 +318,24 @@ class ClipboardHandler:
                 if property_value:
                     iter_sel_start = self.dad.curr_buffer.get_iter_at_offset(start_offset)
                     iter_sel_end = self.dad.curr_buffer.get_iter_at_offset(start_offset + len(element))
-                    self.dad.curr_buffer.apply_tag_by_name(
-                        self.dad.apply_tag_exist_or_create(cons.TAG_LINK, property_value),
-                        iter_sel_start, iter_sel_end)
-        self.dad.sourceview.scroll_to_mark(self.dad.curr_buffer.get_insert(), cons.SCROLL_MARGIN)
+                    self.dad.curr_buffer.apply_tag_by_name(self.dad.apply_tag_exist_or_create(cons.TAG_LINK, property_value),
+                                                           iter_sel_start, iter_sel_end)
+        self.dad.sourceview.scroll_mark_onscreen(self.dad.curr_buffer.get_insert())
 
     def to_html(self, clipboard, selectiondata, data):
         """From Clipboard to HTML Text"""
-        # print "###########################"
-        # print selectiondata.data
-        # print "###########################"
-        # for char in selection_data: print ord(char)
-        # print "###########################"
+        #print "###########################"
+        #print selectiondata.data
+        #print "###########################"
+        #for char in selection_data: print ord(char)
+        #print "###########################"
         selection_data = support.auto_decode_str(selectiondata.data, from_clipboard=True)
         selection_data = re.sub(cons.BAD_CHARS, "", selection_data)
-        # print selection_data
+        #print selection_data
         html_import = imports.HTMLHandler(self.dad)
         xml_string = html_import.get_clipboard_selection_xml(selection_data)
         self.from_xml_string_to_buffer(xml_string)
-        self.dad.sourceview.scroll_to_mark(self.dad.curr_buffer.get_insert(), cons.SCROLL_MARGIN)
+        self.dad.sourceview.scroll_mark_onscreen(self.dad.curr_buffer.get_insert())
 
     def to_plain_text(self, clipboard, selectiondata, data):
         """From Clipboard to Plain Text"""
@@ -368,9 +355,8 @@ class ClipboardHandler:
                     link_url = plain_text[offsets[0]:offsets[1]]
                     if link_url[0:3] not in ["htt", "ftp"]: link_url = "http://" + link_url
                     property_value = "webs " + link_url
-                    self.dad.curr_buffer.apply_tag_by_name(
-                        self.dad.apply_tag_exist_or_create(cons.TAG_LINK, property_value),
-                        iter_sel_start, iter_sel_end)
+                    self.dad.curr_buffer.apply_tag_by_name(self.dad.apply_tag_exist_or_create(cons.TAG_LINK, property_value),
+                                                           iter_sel_start, iter_sel_end)
             else:
                 # check for file or folder path
                 if not cons.CHAR_NEWLINE in plain_text:
@@ -383,11 +369,10 @@ class ClipboardHandler:
                         iter_sel_end = self.dad.curr_buffer.get_iter_at_mark(self.dad.curr_buffer.get_insert())
                         iter_sel_start = iter_sel_end.copy()
                         iter_sel_start.backward_chars(len(plain_text))
-                        self.dad.curr_buffer.apply_tag_by_name(
-                            self.dad.apply_tag_exist_or_create(cons.TAG_LINK, property_value),
-                            iter_sel_start, iter_sel_end)
+                        self.dad.curr_buffer.apply_tag_by_name(self.dad.apply_tag_exist_or_create(cons.TAG_LINK, property_value),
+                                                               iter_sel_start, iter_sel_end)
         self.force_plain_text = False
-        self.dad.sourceview.scroll_to_mark(self.dad.curr_buffer.get_insert(), cons.SCROLL_MARGIN)
+        self.dad.sourceview.scroll_mark_onscreen(self.dad.curr_buffer.get_insert())
 
     def to_rich_text(self, clipboard, selectiondata, data):
         """From Clipboard to Rich Text"""
@@ -396,7 +381,7 @@ class ClipboardHandler:
             print "? no clipboard rich text"
             return
         self.from_xml_string_to_buffer(rich_text)
-        self.dad.sourceview.scroll_to_mark(self.dad.curr_buffer.get_insert(), cons.SCROLL_MARGIN)
+        self.dad.sourceview.scroll_mark_onscreen(self.dad.curr_buffer.get_insert())
 
     def from_xml_string_to_buffer(self, xml_string):
         """From XML String to Text Buffer"""
@@ -405,6 +390,7 @@ class ClipboardHandler:
         if dom_node.nodeName != "root":
             print "rich text from clipboard error"
             return
+        self.dad.state_machine.not_undoable_timeslot_set(True)
         child_dom_iter = dom_node.firstChild
         while child_dom_iter != None:
             if child_dom_iter.nodeName == "slot":
@@ -420,13 +406,12 @@ class ClipboardHandler:
                         self.dom_node_to_codebox(nephew_dom_iter)
                     nephew_dom_iter = nephew_dom_iter.nextSibling
             child_dom_iter = child_dom_iter.nextSibling
+        self.dad.state_machine.not_undoable_timeslot_set(False)
 
     def dom_node_to_rich_text(self, dom_node):
         """From dom_node to Rich Text"""
-        if dom_node.firstChild:
-            text = dom_node.firstChild.data
-        else:
-            text = ""
+        if dom_node.firstChild: text = dom_node.firstChild.data
+        else: text = ""
         tag_names = []
         for tag_property in cons.TAG_PROPERTIES:
             if dom_node.hasAttribute(tag_property):
@@ -437,24 +422,21 @@ class ClipboardHandler:
             self.dad.curr_buffer.insert(self.dad.curr_buffer.get_iter_at_mark(self.dad.curr_buffer.get_insert()),
                                         text)
         else:
-            self.dad.curr_buffer.insert_with_tags_by_name(
-                self.dad.curr_buffer.get_iter_at_mark(self.dad.curr_buffer.get_insert()),
-                text,
-                *tag_names)
+            self.dad.curr_buffer.insert_with_tags_by_name(self.dad.curr_buffer.get_iter_at_mark(self.dad.curr_buffer.get_insert()),
+                                                          text,
+                                                          *tag_names)
 
     def to_image(self, clipboard, selectiondata, data):
         """From Clipboard to Image"""
         pixbuf = selectiondata.get_pixbuf()
         pixbuf.link = ""
         self.dad.image_insert(self.dad.curr_buffer.get_iter_at_mark(self.dad.curr_buffer.get_insert()), pixbuf)
-        self.dad.sourceview.scroll_to_mark(self.dad.curr_buffer.get_insert(), cons.SCROLL_MARGIN)
+        self.dad.sourceview.scroll_mark_onscreen(self.dad.curr_buffer.get_insert())
 
     def dom_node_to_image(self, dom_node):
         """From dom_node to Image"""
-        if dom_node.hasAttribute("justification"):
-            justification = dom_node.attributes["justification"].value
-        else:
-            justification = cons.TAG_PROP_LEFT
+        if dom_node.hasAttribute("justification"): justification = dom_node.attributes["justification"].value
+        else: justification = cons.TAG_PROP_LEFT
         if dom_node.hasAttribute("anchor"):
             pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(cons.ANCHOR_CHAR, self.dad.anchor_size, self.dad.anchor_size)
             pixbuf.anchor = dom_node.attributes["anchor"].value
@@ -463,14 +445,13 @@ class ClipboardHandler:
             pixbuf.filename = dom_node.attributes["filename"].value
             pixbuf.embfile = base64.b64decode(dom_node.firstChild.data)
             pixbuf.time = float(dom_node.attributes["time"].value) if dom_node.hasAttribute("time") else 0
-        else:
-            pixbuf = machines.get_pixbuf_from_encoded_buffer(dom_node.firstChild.data)
+        else: pixbuf = machines.get_pixbuf_from_encoded_buffer(dom_node.firstChild.data)
         if pixbuf:
             pixbuf.link = dom_node.attributes["link"].value if dom_node.hasAttribute("link") else ""
             self.dad.image_insert(self.dad.curr_buffer.get_iter_at_mark(self.dad.curr_buffer.get_insert()),
-                                  pixbuf,
-                                  image_justification=justification,
-                                  text_buffer=self.dad.curr_buffer)
+                pixbuf,
+                image_justification=justification,
+                text_buffer=self.dad.curr_buffer)
 
     def to_codebox(self, clipboard, selectiondata, data):
         """From Clipboard to CodeBox"""
@@ -484,29 +465,24 @@ class ClipboardHandler:
             print "codebox from clipboard error"
             return
         self.dom_node_to_codebox(dom_node)
-        self.dad.sourceview.scroll_to_mark(self.dad.curr_buffer.get_insert(), cons.SCROLL_MARGIN)
+        self.dad.sourceview.scroll_mark_onscreen(self.dad.curr_buffer.get_insert())
 
     def dom_node_to_codebox(self, dom_node):
         """From dom_node to CodeBox"""
-        justification = dom_node.attributes["justification"].value if dom_node.hasAttribute(
-            "justification") else cons.TAG_PROP_LEFT
+        justification = dom_node.attributes["justification"].value if dom_node.hasAttribute("justification") else cons.TAG_PROP_LEFT
         codebox_dict = {
-            'frame_width': int(dom_node.attributes['frame_width'].value),
-            'frame_height': int(dom_node.attributes['frame_height'].value),
-            'width_in_pixels': dom_node.hasAttribute("width_in_pixels") and dom_node.attributes[
-                                                                                'width_in_pixels'].value == "True",
-            'syntax_highlighting': dom_node.attributes['syntax_highlighting'].value,
-            'highlight_brackets': dom_node.hasAttribute("highlight_brackets") and dom_node.attributes[
-                                                                                      'highlight_brackets'].value == "True",
-            'show_line_numbers': dom_node.hasAttribute("show_line_numbers") and dom_node.attributes[
-                                                                                    'show_line_numbers'].value == "True",
-            'fill_text': dom_node.firstChild.data if dom_node.firstChild else ""
+           'frame_width': int(dom_node.attributes['frame_width'].value),
+           'frame_height': int(dom_node.attributes['frame_height'].value),
+           'width_in_pixels': dom_node.hasAttribute("width_in_pixels") and dom_node.attributes['width_in_pixels'].value == "True",
+           'syntax_highlighting': dom_node.attributes['syntax_highlighting'].value,
+           'highlight_brackets': dom_node.hasAttribute("highlight_brackets") and dom_node.attributes['highlight_brackets'].value == "True",
+           'show_line_numbers': dom_node.hasAttribute("show_line_numbers") and dom_node.attributes['show_line_numbers'].value == "True",
+           'fill_text': dom_node.firstChild.data if dom_node.firstChild else ""
         }
-        self.dad.codeboxes_handler.codebox_insert(
-            self.dad.curr_buffer.get_iter_at_mark(self.dad.curr_buffer.get_insert()),
-            codebox_dict,
-            codebox_justification=justification,
-            text_buffer=self.dad.curr_buffer)
+        self.dad.codeboxes_handler.codebox_insert(self.dad.curr_buffer.get_iter_at_mark(self.dad.curr_buffer.get_insert()),
+                                                  codebox_dict,
+                                                  codebox_justification=justification,
+                                                  text_buffer=self.dad.curr_buffer)
 
     def to_table(self, clipboard, selectiondata, table_model_n_iter):
         """From Clipboard to Table"""
@@ -520,14 +496,12 @@ class ClipboardHandler:
             print "table from clipboard error"
             return
         self.dom_node_to_table(dom_node, table_model_n_iter)
-        self.dad.sourceview.scroll_to_mark(self.dad.curr_buffer.get_insert(), cons.SCROLL_MARGIN)
+        self.dad.sourceview.scroll_mark_onscreen(self.dad.curr_buffer.get_insert())
 
     def dom_node_to_table(self, dom_node, table_model_n_iter):
         """From dom_node to Table"""
-        if dom_node.hasAttribute("justification"):
-            justification = dom_node.attributes["justification"].value
-        else:
-            justification = cons.TAG_PROP_LEFT
+        if dom_node.hasAttribute("justification"): justification = dom_node.attributes["justification"].value
+        else: justification = cons.TAG_PROP_LEFT
         table = {'matrix': [],
                  'col_min': int(dom_node.attributes['col_min'].value),
                  'col_max': int(dom_node.attributes["col_max"].value)}
@@ -538,29 +512,24 @@ class ClipboardHandler:
                 nephew_dom_iter = child_dom_iter.firstChild
                 while nephew_dom_iter != None:
                     if nephew_dom_iter.nodeName == "cell":
-                        if nephew_dom_iter.firstChild != None:
-                            table['matrix'][-1].append(nephew_dom_iter.firstChild.data)
-                        else:
-                            table['matrix'][-1].append("")
+                        if nephew_dom_iter.firstChild != None: table['matrix'][-1].append(nephew_dom_iter.firstChild.data)
+                        else: table['matrix'][-1].append("")
                     nephew_dom_iter = nephew_dom_iter.nextSibling
             child_dom_iter = child_dom_iter.nextSibling
         if not table_model_n_iter:
             # insert new table
-            self.dad.tables_handler.table_insert(
-                self.dad.curr_buffer.get_iter_at_mark(self.dad.curr_buffer.get_insert()),
-                table,
-                table_justification=justification,
-                text_buffer=self.dad.curr_buffer)
+            self.dad.tables_handler.table_insert(self.dad.curr_buffer.get_iter_at_mark(self.dad.curr_buffer.get_insert()),
+                                                 table,
+                                                 table_justification=justification,
+                                                 text_buffer=self.dad.curr_buffer)
         else:
             # paste into existing table
             (model, iter) = table_model_n_iter
             num_columns = model.get_n_columns()
             for i, table_row in enumerate(table['matrix']):
                 if i < len(table['matrix']) - 1:
-                    if len(table_row) > num_columns:
-                        table_row = table_row[:num_columns]
-                    elif len(table_row) < num_columns:
-                        table_row = table_row + [""] * (num_columns - len(table_row))
+                    if len(table_row) > num_columns: table_row = table_row[:num_columns]
+                    elif len(table_row) < num_columns: table_row = table_row + [""]*(num_columns - len(table_row))
                     iter = model.insert_after(iter, table_row)
 
     def rich_text_get_from_text_buffer_selection(self, text_buffer, iter_sel_start, iter_sel_end,
@@ -581,10 +550,8 @@ class ClipboardHandler:
         start_offset = iter_sel_start.get_offset()
         for end_offset_element in pixbuf_table_codebox_vector:
             end_offset = end_offset_element[1][0]
-            if obj_pos < len(pixbuf_table_codebox_vector):
-                obj_element = pixbuf_table_codebox_vector[obj_pos]
-            else:
-                obj_element = None
+            if obj_pos < len(pixbuf_table_codebox_vector): obj_element = pixbuf_table_codebox_vector[obj_pos]
+            else: obj_element = None
             self.rich_text_process_slot(dom, root, start_offset, end_offset, text_buffer, obj_element, change_case)
             obj_pos += 1
             start_offset = end_offset
@@ -596,7 +563,7 @@ class ClipboardHandler:
         dom_iter = dom.createElement("slot")
         root.appendChild(dom_iter)
         start_iter = text_buffer.get_iter_at_offset(start_offset)
-        # print "process slot (%s->%s)" % (start_offset, end_offset)
+        #print "process slot (%s->%s)" % (start_offset, end_offset)
         # begin operations
         self.curr_attributes = {}
         for tag_property in cons.TAG_PROPERTIES: self.curr_attributes[tag_property] = ""
@@ -608,8 +575,7 @@ class ClipboardHandler:
             self.dad.xml_handler.rich_txt_serialize(dom_iter, start_iter, curr_iter, self.curr_attributes,
                                                     change_case=change_case, dom=dom)
             offset_old = curr_iter.get_offset()
-            if offset_old >= end_offset:
-                break
+            if offset_old >= end_offset: break
             else:
                 self.dad.xml_handler.rich_text_attributes_update(curr_iter, self.curr_attributes)
                 start_iter.set_offset(offset_old)
@@ -620,9 +586,6 @@ class ClipboardHandler:
             self.dad.xml_handler.rich_txt_serialize(dom_iter, start_iter, curr_iter, self.curr_attributes,
                                                     change_case=change_case, dom=dom)
         if obj_element:
-            if obj_element[0] == "pixbuf":
-                self.dad.xml_handler.pixbuf_element_to_xml(obj_element[1], dom_iter, dom)
-            elif obj_element[0] == "table":
-                self.dad.xml_handler.table_element_to_xml(obj_element[1], dom_iter, dom)
-            elif obj_element[0] == "codebox":
-                self.dad.xml_handler.codebox_element_to_xml(obj_element[1], dom_iter, dom)
+            if obj_element[0] == "pixbuf": self.dad.xml_handler.pixbuf_element_to_xml(obj_element[1], dom_iter, dom)
+            elif obj_element[0] == "table": self.dad.xml_handler.table_element_to_xml(obj_element[1], dom_iter, dom)
+            elif obj_element[0] == "codebox": self.dad.xml_handler.codebox_element_to_xml(obj_element[1], dom_iter, dom)

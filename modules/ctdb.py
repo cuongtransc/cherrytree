@@ -2,7 +2,7 @@
 #
 #       ctdb.py
 #
-#       Copyright 2009-2016 Giuseppe Penone <giuspen@gmail.com>
+#       Copyright 2009-2017 Giuseppe Penone <giuspen@gmail.com>
 #
 #       This program is free software; you can redistribute it and/or modify
 #       it under the terms of the GNU General Public License as published by
@@ -20,15 +20,8 @@
 #       MA 02110-1301, USA.
 
 import gtk
-import os
-import re
-import sqlite3
-import xml.dom.minidom
-
-import cons
-import exports
-import machines
-import support
+import os, sqlite3, xml.dom.minidom, re, time
+import cons, machines, support, exports
 
 
 class CTDBHandler:
@@ -41,6 +34,8 @@ class CTDBHandler:
         self.nodes_to_rm_set = set()
         self.bookmarks_to_write = False
         self.remove_at_quit_set = set()
+        self.is_vacuum = False
+        self.db_tables_check_done = False
 
     def reset(self):
         """Reset Variables"""
@@ -57,7 +52,7 @@ class CTDBHandler:
             need_to_commit = True
         self.bookmarks_to_write = False
         for node_id_to_write in self.nodes_to_write_dict:
-            # print "node_id_to_write", node_id_to_write
+            #print "node_id_to_write", node_id_to_write
             write_dict = self.nodes_to_write_dict[node_id_to_write]
             tree_iter = self.dad.get_tree_iter_from_node_id(node_id_to_write)
             level = self.dad.treestore.iter_depth(tree_iter)
@@ -71,10 +66,12 @@ class CTDBHandler:
             self.remove_db_node_n_children(db, node_to_rm)
             need_to_commit = True
         self.nodes_to_rm_set.clear()
-        if need_to_commit:
-            db.commit()
-        else:
-            print "Writing DB Data but No Updates Found"
+        if need_to_commit: db.commit()
+        elif not self.is_vacuum: print "Writing DB Data but No Updates Found"
+        if self.is_vacuum:
+            print "vacuum"
+            db.execute('VACUUM')
+            db.execute('REINDEX')
 
     def get_image_db_tuple(self, image_element, node_id):
         """From image element to db tuple"""
@@ -96,10 +93,8 @@ class CTDBHandler:
             time = pixbuf.time
         else:
             filename = ""
-            try:
-                link = (pixbuf.link).decode(cons.STR_UTF8)
-            except:
-                link = ""
+            try: link = (pixbuf.link).decode(cons.STR_UTF8)
+            except: link = ""
             anchor = ""
             png_blob = machines.get_blob_buffer_from_pixbuf(pixbuf)
             time = 0
@@ -233,9 +228,9 @@ class CTDBHandler:
                 while tree_iter_children:
                     self.pending_rm_just_added_node_children(tree_iter_children)
                     tree_iter_children = self.dad.treestore.iter_next(tree_iter_children)
-                    # no need to rm the node, we just do not add it... but write to set to not use this id again
+                # no need to rm the node, we just do not add it... but write to set to not use this id again
         self.nodes_to_rm_set.add(node_id)
-        # print self.nodes_to_rm_set
+        #print self.nodes_to_rm_set
 
     def pending_rm_just_added_node_children(self, tree_iter):
         """Handle situation of nodes children just added and immediately removed"""
@@ -260,6 +255,22 @@ class CTDBHandler:
         for child_row in children_rows:
             self.remove_db_node_n_children(db, child_row['node_id'])
 
+    def db_tables_execute_check(self, db):
+        curr_cols_num_node = len(db.execute('PRAGMA table_info(node)').fetchall())
+        if curr_cols_num_node == 11:
+            db.execute('ALTER TABLE node ADD COLUMN ts_creation INTEGER')
+            db.execute('ALTER TABLE node ADD COLUMN ts_lastsave INTEGER')
+            print "table 'node' alter from 11"
+        curr_cols_num_image = len(db.execute('PRAGMA table_info(image)').fetchall())
+        if curr_cols_num_image == 5:
+            db.execute('ALTER TABLE image ADD COLUMN filename TEXT')
+            db.execute('ALTER TABLE image ADD COLUMN link TEXT')
+            db.execute('ALTER TABLE image ADD COLUMN time INTEGER')
+            print "table 'image' alter from 5"
+        elif curr_cols_num_image == 7:
+            db.execute('ALTER TABLE image ADD COLUMN time INTEGER')
+            print "table 'image' alter from 7"
+
     def write_db_node(self, db, tree_iter, level, sequence, node_father_id, write_dict, exporting="", sel_range=None):
         """Write a node in DB"""
         node_id = self.dad.treestore[tree_iter][3]
@@ -279,13 +290,16 @@ class CTDBHandler:
         if foreground:
             is_richtxt |= 0x04
             is_richtxt |= exports.rgb_int24bit_from_str(foreground[1:]) << 3
+        ts_creation = self.dad.treestore[tree_iter][12]
+        ts_lastsave = self.dad.treestore[tree_iter][13]
+        if not self.db_tables_check_done:
+            self.db_tables_execute_check(db)
+            self.db_tables_check_done = True
         if write_dict['buff']:
             if not self.dad.treestore[tree_iter][2]:
                 # we are using db storage and the buffer was not created yet
-                if exporting:
-                    self.read_db_node_content(tree_iter, self.dad.db)
-                else:
-                    self.read_db_node_content(tree_iter, self.dad.db_old)
+                if exporting: self.read_db_node_content(tree_iter, self.dad.db)
+                else: self.read_db_node_content(tree_iter, self.dad.db_old)
             curr_buffer = self.dad.treestore[tree_iter][2]
             if not sel_range:
                 start_iter = curr_buffer.get_start_iter()
@@ -307,60 +321,42 @@ class CTDBHandler:
                 self.dad.xml_handler.rich_text_attributes_update(curr_iter, self.curr_attributes)
                 tag_found = curr_iter.forward_to_tag_toggle(None)
                 while tag_found:
-                    self.dad.xml_handler.rich_txt_serialize(dom_iter, start_iter, curr_iter, self.curr_attributes,
-                                                            dom=self.dom)
-                    if curr_iter.compare(end_iter) >= 0:
-                        break
+                    self.dad.xml_handler.rich_txt_serialize(dom_iter, start_iter, curr_iter, self.curr_attributes, dom=self.dom)
+                    if curr_iter.compare(end_iter) >= 0: break
                     else:
                         self.dad.xml_handler.rich_text_attributes_update(curr_iter, self.curr_attributes)
                         offset_old = curr_iter.get_offset()
                         start_iter.set_offset(offset_old)
                         tag_found = curr_iter.forward_to_tag_toggle(None)
                         if curr_iter.get_offset() == offset_old: break
-                else:
-                    self.dad.xml_handler.rich_txt_serialize(dom_iter, start_iter, curr_iter, self.curr_attributes,
-                                                            dom=self.dom)
+                else:  self.dad.xml_handler.rich_txt_serialize(dom_iter, start_iter, curr_iter, self.curr_attributes, dom=self.dom)
                 # time for the objects
                 if write_dict['upd']:
                     db.execute('DELETE FROM codebox WHERE node_id=?', (node_id,))
                     db.execute('DELETE FROM grid WHERE node_id=?', (node_id,))
                     db.execute('DELETE FROM image WHERE node_id=?', (node_id,))
-                pixbuf_table_codebox_vector = self.dad.state_machine.get_embedded_pixbufs_tables_codeboxes(curr_buffer,
-                                                                                                           sel_range=sel_range)
+                pixbuf_table_codebox_vector = self.dad.state_machine.get_embedded_pixbufs_tables_codeboxes(curr_buffer, sel_range=sel_range)
                 # pixbuf_table_codebox_vector is [ [ "pixbuf"/"table"/"codebox", [offset, pixbuf, alignment] ],... ]
                 codeboxes_tuples = []
                 tables_tuples = []
                 images_tuples = []
                 for element in pixbuf_table_codebox_vector:
                     if sel_range: element[1][0] -= sel_range[0]
-                    if element[0] == "pixbuf":
-                        images_tuples.append(self.get_image_db_tuple(element[1], node_id))
-                    elif element[0] == "table":
-                        tables_tuples.append(self.get_table_db_tuple(element[1], node_id))
-                    elif element[0] == "codebox":
-                        codeboxes_tuples.append(self.get_codebox_db_tuple(element[1], node_id))
+                    if element[0] == "pixbuf": images_tuples.append(self.get_image_db_tuple(element[1], node_id))
+                    elif element[0] == "table": tables_tuples.append(self.get_table_db_tuple(element[1], node_id))
+                    elif element[0] == "codebox": codeboxes_tuples.append(self.get_codebox_db_tuple(element[1], node_id))
                 if codeboxes_tuples:
                     has_codebox = 1
                     db.executemany('INSERT INTO codebox VALUES(?,?,?,?,?,?,?,?,?,?)', codeboxes_tuples)
-                else:
-                    has_codebox = 0
+                else: has_codebox = 0
                 if tables_tuples:
                     has_table = 1
                     db.executemany('INSERT INTO grid VALUES(?,?,?,?,?,?)', tables_tuples)
-                else:
-                    has_table = 0
+                else: has_table = 0
                 if images_tuples:
                     has_image = 1
-                    curr_num_cols = len(db.execute('PRAGMA table_info(image)').fetchall())
-                    if curr_num_cols == 5:
-                        db.execute('ALTER TABLE image ADD COLUMN filename TEXT')
-                        db.execute('ALTER TABLE image ADD COLUMN link TEXT')
-                        db.execute('ALTER TABLE image ADD COLUMN time INTEGER')
-                    elif curr_num_cols == 7:
-                        db.execute('ALTER TABLE image ADD COLUMN time INTEGER')
                     db.executemany('INSERT INTO image VALUES(?,?,?,?,?,?,?,?)', images_tuples)
-                else:
-                    has_image = 0
+                else: has_image = 0
                 # retrieve xml text
                 txt = (self.dom.toxml()).decode(cons.STR_UTF8)
             else:
@@ -374,15 +370,12 @@ class CTDBHandler:
                 db.execute('DELETE FROM node WHERE node_id=?', (node_id,))
             node_tuple = (node_id, name, txt, syntax, tags,
                           is_ro, is_richtxt, has_codebox, has_table, has_image,
-                          level)
-            db.execute('INSERT INTO node VALUES(?,?,?,?,?,?,?,?,?,?,?)', node_tuple)
+                          level, ts_creation, ts_lastsave)
+            db.execute('INSERT INTO node VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)', node_tuple)
         elif write_dict['buff']:
-            db.execute(
-                'UPDATE node SET txt=?, syntax=?, is_richtxt=?, has_codebox=?, has_table=?, has_image=?, level=? WHERE node_id=?',
-                (txt, syntax, is_richtxt, has_codebox, has_table, has_image, level, node_id))
+            db.execute('UPDATE node SET txt=?, syntax=?, is_richtxt=?, has_codebox=?, has_table=?, has_image=?, level=?, ts_lastsave=? WHERE node_id=?', (txt, syntax, is_richtxt, has_codebox, has_table, has_image, level, ts_lastsave, node_id))
         elif write_dict['prop']:
-            db.execute('UPDATE node SET name=?, syntax=?, tags=?, is_ro=?, is_richtxt=?, level=? WHERE node_id=?',
-                       (name, syntax, tags, is_ro, is_richtxt, level, node_id))
+            db.execute('UPDATE node SET name=?, syntax=?, tags=?, is_ro=?, is_richtxt=?, level=? WHERE node_id=?', (name, syntax, tags, is_ro, is_richtxt, level, node_id))
         if write_dict['hier']:
             if write_dict['upd']:
                 db.execute('DELETE FROM children WHERE node_id=?', (node_id,))
@@ -396,29 +389,24 @@ class CTDBHandler:
         child_sequence = 0
         while child_tree_iter != None:
             child_sequence += 1
-            self.write_db_node(db, child_tree_iter, level + 1, child_sequence, node_id, write_dict, exporting)
+            self.write_db_node(db, child_tree_iter, level+1, child_sequence, node_id, write_dict, exporting)
             child_tree_iter = self.dad.treestore.iter_next(child_tree_iter)
 
     def write_db_full(self, db, exporting="", sel_range=None):
         """Write the whole DB"""
-        if not exporting or exporting == "a":
-            tree_iter = self.dad.treestore.get_iter_first()
-        else:
-            tree_iter = self.dad.curr_tree_iter
+        if not exporting or exporting == "a": tree_iter = self.dad.treestore.get_iter_first()
+        else: tree_iter = self.dad.curr_tree_iter
         level = 0
         sequence = 0
         node_father_id = 0
         if exporting == "n":
             write_dict = {'upd': False, 'prop': True, 'buff': True, 'hier': True, 'child': False}
-        else:
-            write_dict = {'upd': False, 'prop': True, 'buff': True, 'hier': True, 'child': True}
+        else: write_dict = {'upd': False, 'prop': True, 'buff': True, 'hier': True, 'child': True}
         while tree_iter != None:
             sequence += 1
             self.write_db_node(db, tree_iter, level, sequence, node_father_id, write_dict, exporting, sel_range)
-            if not exporting or exporting == "a":
-                tree_iter = self.dad.treestore.iter_next(tree_iter)
-            else:
-                break
+            if not exporting or exporting == "a": tree_iter = self.dad.treestore.iter_next(tree_iter)
+            else: break
         if not exporting or exporting == "a": self.write_db_bookmarks(db)
         if not exporting:
             self.bookmarks_to_write = False
@@ -430,13 +418,13 @@ class CTDBHandler:
         """Add Codebox to Text Buffer"""
         iter_insert = text_buffer.get_iter_at_offset(codebox_row['offset'])
         codebox_dict = {
-            'frame_width': codebox_row['width'],
-            'frame_height': codebox_row['height'],
-            'width_in_pixels': bool(codebox_row['is_width_pix']),
-            'syntax_highlighting': codebox_row['syntax'],
-            'highlight_brackets': bool(codebox_row['do_highl_bra']),
-            'show_line_numbers': bool(codebox_row['do_show_linenum']),
-            'fill_text': codebox_row['txt']
+           'frame_width': codebox_row['width'],
+           'frame_height': codebox_row['height'],
+           'width_in_pixels': bool(codebox_row['is_width_pix']),
+           'syntax_highlighting': codebox_row['syntax'],
+           'highlight_brackets': bool(codebox_row['do_highl_bra']),
+           'show_line_numbers': bool(codebox_row['do_show_linenum']),
+           'fill_text': codebox_row['txt']
         }
         self.dad.codeboxes_handler.codebox_insert(iter_insert,
                                                   codebox_dict,
@@ -451,8 +439,7 @@ class CTDBHandler:
             'col_min': table_row['col_min'],
             'col_max': table_row["col_max"]
         }
-        try:
-            dom = xml.dom.minidom.parseString(table_row['txt'])
+        try: dom = xml.dom.minidom.parseString(table_row['txt'])
         except:
             print "** failed to parse **"
             print table_row['txt']
@@ -471,8 +458,7 @@ class CTDBHandler:
                     if nephew_dom_iter.nodeName == "cell":
                         if nephew_dom_iter.firstChild != None:
                             table_dict['matrix'][-1].append(nephew_dom_iter.firstChild.data)
-                        else:
-                            table_dict['matrix'][-1].append("")
+                        else: table_dict['matrix'][-1].append("")
                     nephew_dom_iter = nephew_dom_iter.nextSibling
             child_dom_iter = child_dom_iter.nextSibling
         self.dad.tables_handler.table_insert(iter_insert,
@@ -496,27 +482,23 @@ class CTDBHandler:
             pixbuf.link = image_row['link'] if 'link' in image_row.keys() else ""
         if pixbuf:
             self.dad.image_insert(iter_insert,
-                                  pixbuf,
-                                  image_justification=image_row['justification'],
-                                  text_buffer=text_buffer)
+                pixbuf,
+                image_justification=image_row['justification'],
+                text_buffer=text_buffer)
 
     def read_db_node_content(self, tree_iter, db, original_id=None):
         """Read a node content from DB"""
         if self.dad.user_active:
             self.dad.user_active = False
             user_active_restore = True
-        else:
-            user_active_restore = False
+        else: user_active_restore = False
         syntax_highlighting = self.dad.treestore[tree_iter][4]
-        if original_id:
-            node_id = original_id
-        else:
-            node_id = self.dad.treestore[tree_iter][3]
-        # print "read node content, node_id", node_id
+        if original_id: node_id = original_id
+        else: node_id = self.dad.treestore[tree_iter][3]
+        #print "read node content, node_id", node_id
         self.dad.treestore[tree_iter][2] = self.dad.buffer_create(syntax_highlighting)
         curr_buffer = self.dad.treestore[tree_iter][2]
-        node_row = db.execute('SELECT txt, has_codebox, has_table, has_image FROM node WHERE node_id=?',
-                              (node_id,)).fetchone()
+        node_row = db.execute('SELECT txt, has_codebox, has_table, has_image FROM node WHERE node_id=?', (node_id,)).fetchone()
         if syntax_highlighting != cons.RICH_TEXT_ID:
             curr_buffer.begin_not_undoable_action()
             curr_buffer.set_text(node_row['txt'])
@@ -524,8 +506,7 @@ class CTDBHandler:
         else:
             # first we go for the rich text
             rich_text_xml = re.sub(cons.BAD_CHARS, "", node_row['txt'])
-            try:
-                dom = xml.dom.minidom.parseString(rich_text_xml)
+            try: dom = xml.dom.minidom.parseString(rich_text_xml)
             except:
                 print "** failed to parse **"
                 print node_row['txt']
@@ -545,63 +526,55 @@ class CTDBHandler:
             # then we go for the objects
             objects_index_list = []
             if node_row['has_codebox']:
-                codeboxes_rows = db.execute('SELECT * FROM codebox WHERE node_id=? ORDER BY offset ASC',
-                                            (node_id,)).fetchall()
+                codeboxes_rows = db.execute('SELECT * FROM codebox WHERE node_id=? ORDER BY offset ASC', (node_id,)).fetchall()
                 for i, c_row in enumerate(codeboxes_rows):
                     objects_index_list.append(['c', i, c_row['offset']])
             if node_row['has_table']:
-                tables_rows = db.execute('SELECT * FROM grid WHERE node_id=? ORDER BY offset ASC',
-                                         (node_id,)).fetchall()
+                tables_rows = db.execute('SELECT * FROM grid WHERE node_id=? ORDER BY offset ASC', (node_id,)).fetchall()
                 for i, t_row in enumerate(tables_rows):
                     new_obj_idx_elem = ['t', i, t_row['offset']]
                     for j, obj_idx in enumerate(objects_index_list):
                         if new_obj_idx_elem[2] < obj_idx[2]:
                             objects_index_list.insert(j, new_obj_idx_elem)
                             break
-                    else:
-                        objects_index_list.append(new_obj_idx_elem)
+                    else: objects_index_list.append(new_obj_idx_elem)
             if node_row['has_image']:
-                images_rows = db.execute('SELECT * FROM image WHERE node_id=? ORDER BY offset ASC',
-                                         (node_id,)).fetchall()
+                images_rows = db.execute('SELECT * FROM image WHERE node_id=? ORDER BY offset ASC', (node_id,)).fetchall()
                 for i, i_row in enumerate(images_rows):
                     new_obj_idx_elem = ['i', i, i_row['offset']]
                     for j, obj_idx in enumerate(objects_index_list):
                         if new_obj_idx_elem[2] < obj_idx[2]:
                             objects_index_list.insert(j, new_obj_idx_elem)
                             break
-                    else:
-                        objects_index_list.append(new_obj_idx_elem)
+                    else: objects_index_list.append(new_obj_idx_elem)
             if objects_index_list:
                 self.dad.sourceview.set_buffer(curr_buffer)
                 for obj_idx in objects_index_list:
-                    if obj_idx[0] == 'c':
-                        self.add_node_codebox(codeboxes_rows[obj_idx[1]], curr_buffer)
-                    elif obj_idx[0] == 't':
-                        self.add_node_table(tables_rows[obj_idx[1]], curr_buffer)
-                    else:
-                        self.add_node_image(images_rows[obj_idx[1]], curr_buffer)
+                    if obj_idx[0] == 'c': self.add_node_codebox(codeboxes_rows[obj_idx[1]], curr_buffer)
+                    elif obj_idx[0] == 't': self.add_node_table(tables_rows[obj_idx[1]], curr_buffer)
+                    else: self.add_node_image(images_rows[obj_idx[1]], curr_buffer)
                 self.dad.sourceview.set_buffer(self.dad.curr_buffer)
         curr_buffer.set_modified(False)
         if user_active_restore: self.dad.user_active = True
 
     def get_children_rows_from_father_id(self, db, father_id):
         """Returns the children rows given the father_id"""
-        children_rows = db.execute('SELECT * FROM children WHERE father_id=? ORDER BY sequence ASC',
-                                   (father_id,)).fetchall()
+        children_rows = db.execute('SELECT * FROM children WHERE father_id=? ORDER BY sequence ASC', (father_id,)).fetchall()
         return children_rows
 
     def get_node_row_partial_from_id(self, db, node_id):
         """Returns the (partial) node row given the node_id"""
-        node_row = db.execute('SELECT node_id, name, syntax, tags, is_ro, is_richtxt, level FROM node WHERE node_id=?',
-                              (node_id,)).fetchone()
+        try:
+            node_row = db.execute('SELECT node_id, name, syntax, tags, is_ro, is_richtxt, level, ts_creation, ts_lastsave FROM node WHERE node_id=?', (node_id,)).fetchone()
+        except:
+            node_row = db.execute('SELECT node_id, name, syntax, tags, is_ro, is_richtxt, level FROM node WHERE node_id=?', (node_id,)).fetchone()
         return node_row
 
     def read_db_node_n_children(self, db, node_row, tree_father, discard_ids, node_sequence):
         """Read a node and his children from DB"""
         if not discard_ids:
             unique_id = node_row['node_id']
-        else:
-            unique_id = self.dad.node_id_get()
+        else: unique_id = self.dad.node_id_get()
         node_tags = node_row['tags']
         if node_tags: self.dad.tags_add_from_node(node_tags)
         # is_ro (bitfield)
@@ -617,18 +590,26 @@ class CTDBHandler:
         else:
             foreground = None
         syntax_highlighting = node_row['syntax']
-        if syntax_highlighting not in [cons.RICH_TEXT_ID, cons.PLAIN_TEXT_ID] \
-                and syntax_highlighting not in self.dad.available_languages:
+        if syntax_highlighting not in [cons.RICH_TEXT_ID, cons.PLAIN_TEXT_ID]\
+        and syntax_highlighting not in self.dad.available_languages:
             syntax_highlighting = syntax_highlighting.lower().replace("C++", "cpp")
             if syntax_highlighting not in self.dad.available_languages:
                 syntax_highlighting = cons.RICH_TEXT_ID
-        node_level = self.dad.treestore.iter_depth(tree_father) + 1 if tree_father else 0
+        node_level = self.dad.treestore.iter_depth(tree_father)+1 if tree_father else 0
         cherry = self.dad.get_node_icon(node_level, syntax_highlighting, custom_icon_id)
-        # print "added node with unique_id", unique_id
+        try:
+            ts_creation = node_row['ts_creation']
+            ts_lastsave = node_row['ts_lastsave']
+        except IndexError:
+            ts_creation = None
+            ts_lastsave = None
+        if not ts_creation: ts_creation = 0
+        if not ts_lastsave: ts_lastsave = 0
+        #print "added node with unique_id", unique_id
         # insert the node containing the buffer into the tree
         tree_iter = self.dad.treestore.append(tree_father, [cherry,
                                                             node_row['name'],
-                                                            None,  # no buffer for now
+                                                            None, # no buffer for now
                                                             unique_id,
                                                             syntax_highlighting,
                                                             node_sequence,
@@ -637,7 +618,10 @@ class CTDBHandler:
                                                             None,
                                                             custom_icon_id,
                                                             support.get_pango_weight(is_bold),
-                                                            foreground])
+                                                            foreground,
+                                                            ts_creation,
+                                                            ts_lastsave])
+        self.dad.update_node_aux_icon(tree_iter)
         self.dad.nodes_names_dict[self.dad.treestore[tree_iter][3]] = self.dad.treestore[tree_iter][1]
         if discard_ids:
             # we are importing (=> adding) a node
@@ -658,6 +642,12 @@ class CTDBHandler:
 
     def read_db_full(self, db, discard_ids, tree_father=None):
         """Read the whole DB"""
+        self.db_tables_check_done = False
+        # bookmarks
+        bookmarks_rows = db.execute('SELECT * FROM bookmark ORDER BY sequence ASC').fetchall()
+        for bookmark_row in bookmarks_rows:
+            node_id = bookmark_row['node_id']
+            self.dad.bookmarks.append(str(node_id))
         # tree nodes
         node_sequence = 0
         children_rows = self.get_children_rows_from_father_id(db, 0)
@@ -670,12 +660,4 @@ class CTDBHandler:
                                              tree_father,
                                              discard_ids,
                                              node_sequence)
-        # bookmarks
-        bookmarks_rows = db.execute('SELECT * FROM bookmark ORDER BY sequence ASC').fetchall()
-        for bookmark_row in bookmarks_rows:
-            node_id = bookmark_row['node_id']
-            self.dad.bookmarks.append(str(node_id))
-            tree_iter = self.dad.get_tree_iter_from_node_id(node_id)
-            if tree_iter:
-                self.dad.update_node_pre_icon(tree_iter, stock_id="pin")
         self.dad.nodes_sequences_fix(tree_father, False)
