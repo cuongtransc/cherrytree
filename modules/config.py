@@ -66,7 +66,7 @@ CODE_EXEC_TERM_RUN_DEFAULT = {
 "linux" : "xterm -hold -geometry 180x45 -e \"%s\"" % CODE_EXEC_COMMAND,
 "win" : "start cmd /k \"%s\"" % CODE_EXEC_COMMAND,
 }
-DEFAULT_MONOSPACE_BG = "#7f7f7f"
+DEFAULT_MONOSPACE_BG = "#eeeeee"
 MAX_SIZE_EMBFILE_MB_DEFAULT = 10
 HORIZONTAL_RULE = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 COLOR_PALETTE_DEFAULT = ["#000000", "#ffffff", "#7f7f7f", "#ff0000", "#a020f0",
