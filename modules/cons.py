@@ -99,7 +99,7 @@ TAG_JUSTIFICATION = "justification"
 TAG_LINK = "link"
 TAG_PROP_HEAVY = "heavy"
 TAG_PROP_ITALIC = "italic"
-TAG_PROP_MONOSPACE = "monospace"
+TAG_PROP_MONOSPACE = "Source Code Pro"
 TAG_PROP_SINGLE = "single"
 TAG_PROP_SMALL = "small"
 TAG_PROP_TRUE = "true"
@@ -127,6 +127,7 @@ PLAIN_TEXT_ID = "plain-text"
 STYLE_SCHEME_LIGHT = "classic"
 STYLE_SCHEME_DARK = "cobalt"
 STYLE_SCHEME_GRAY = "oblivion"
+STYLE_SCHEME_TANGO = "tango"
 ANCHOR_CHAR = GLADE_PATH + 'anchor.png'
 FILE_CHAR = GLADE_PATH + 'file_icon.png'
 
@@ -252,7 +253,7 @@ CHERRY_YELLOW, 'image_insert', 'image_edit', 'image_save',
 'list_bulleted', 'list_numbered', 'list_todo', 'node_name_header',
 'case_toggle', 'case_upper', 'case_lower', 'edit-delete',
 'edit-copy', 'edit-cut', 'edit-paste',
-'find', 'find_sel', 'find_selnsub', 'find_all','find_again', 'find_back', 
+'find', 'find_sel', 'find_selnsub', 'find_all','find_again', 'find_back',
 'replace_sel', 'replace_selnsub', 'replace_all', 'find_replace', 'replace_again',
 'color_background', 'color_foreground', 'format-text-large', 'format-text-large2', 'format-text-large3',
 'format-text-small', 'format-text-subscript', 'format-text-superscript', 'format-text-monospace',
