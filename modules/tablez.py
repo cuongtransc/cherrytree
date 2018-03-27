@@ -39,6 +39,7 @@ class TablesHandler:
     def __init__(self, dad):
         """Lists Handler boot"""
         self.dad = dad
+        self.curr_table_anchor = None
 
     def table_cut(self, *args):
         """Cut Table"""
@@ -354,6 +355,7 @@ class TablesHandler:
         anchor = text_buffer.create_child_anchor(iter_insert)
         anchor.liststore = gtk.ListStore(*(str,) * self.dad.table_columns)
         anchor.treeview = gtk.TreeView(anchor.liststore)
+        anchor.renderers_text = []
         for element in range(self.dad.table_columns):
             label = gtk.Label('<b>' + headers[element] + '</b>')
             label.set_use_markup(True)
@@ -363,7 +365,7 @@ class TablesHandler:
             renderer_text.set_property('editable', True)
             renderer_text.set_property('wrap-width', table_col_max)
             renderer_text.set_property('wrap-mode', pango.WRAP_WORD_CHAR)
-            renderer_text.set_property('font-desc', pango.FontDescription(self.dad.text_font))
+            renderer_text.set_property('font-desc', pango.FontDescription(self.dad.pt_font))
             renderer_text.connect('edited', self.on_table_cell_edited, anchor.liststore, element)
             renderer_text.connect('editing-started', self.on_table_cell_editing_started, anchor.liststore, element)
             column = gtk.TreeViewColumn("", renderer_text, text=element)
@@ -373,6 +375,7 @@ class TablesHandler:
             column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
             column.connect('clicked', self.table_column_clicked, anchor, element)
             anchor.treeview.append_column(column)
+            anchor.renderers_text.append(renderer_text)
         anchor.headers = headers
         anchor.table_col_min = table_col_min
         anchor.table_col_max = table_col_max
@@ -444,7 +447,7 @@ class TablesHandler:
             elif keyname == "comma":
                 return True
         else:
-            if keyname in [cons.STR_KEY_RETURN, cons.STR_KEY_UP, cons.STR_KEY_DOWN]:
+            if keyname in [cons.STR_KEY_RETURN, cons.STR_KEY_TAB, cons.STR_KEY_UP, cons.STR_KEY_DOWN]:
                 if model[path][col_num] != widget.get_text():
                     if self.dad.is_curr_node_not_read_only_or_error():
                         model[path][col_num] = widget.get_text()
@@ -675,6 +678,16 @@ class TablesHandler:
             menu_table.popup(None, None, None, event.button, event.time)
             return True
         return False
+
+    def table_in_use_get_anchor(self):
+        """Returns a Table Anchor if Currently in Use or None"""
+        if not self.curr_table_anchor: return None
+        if not self.dad.curr_buffer: return None
+        iter_sel_start = self.dad.curr_buffer.get_iter_at_mark(self.dad.curr_buffer.get_insert())
+        anchor = iter_sel_start.get_child_anchor()
+        if not anchor: return None
+        if "liststore" in dir(anchor): return anchor
+        return None
 
 
 class UTF8Recoder:

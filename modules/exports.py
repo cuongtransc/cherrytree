@@ -90,7 +90,7 @@ def rgb_to_no_white(in_rgb):
         # r+g+b black is 0
         # r+g+b white is 3*65535
         max_48 = 65535
-        if r+g+b > 2.3*max_48:
+        if r+g+b > 2.2*max_48:
             r = max_48 - r
             g = max_48 - g
             b = max_48 - b
@@ -107,7 +107,7 @@ def rgb_to_no_white(in_rgb):
         # r+g+b black is 0
         # r+g+b white is 3*255
         max_24 = 255
-        if r+g+b > 2.3*max_24:
+        if r+g+b > 2.2*max_24:
             r = max_24 - r
             g = max_24 - g
             b = max_24 - b
@@ -238,7 +238,7 @@ class ExportPrint:
         self.dad.get_textbuffer_from_tree_iter(tree_iter)
         if self.dad.treestore[tree_iter][4] == cons.RICH_TEXT_ID:
             pango_text, pixbuf_table_codebox_vector = self.pango_handler.pango_get_from_treestore_node(tree_iter)
-            self.text_font = self.dad.text_font # text font for all (also eventual code nodes)
+            self.text_font = self.dad.rt_font # text font for all (also eventual code nodes)
         else:
             pango_text = [self.pango_handler.pango_get_from_code_buffer(self.dad.treestore[tree_iter][2])]
             pixbuf_table_codebox_vector = []
@@ -268,11 +268,11 @@ class ExportPrint:
         """Export Print the Selected Node"""
         if self.dad.treestore[tree_iter][4] == cons.RICH_TEXT_ID:
             self.pango_text, self.pixbuf_table_codebox_vector = self.pango_handler.pango_get_from_treestore_node(tree_iter, sel_range)
-            self.text_font = self.dad.text_font
+            self.text_font = self.dad.rt_font
         else:
             self.pango_text = [self.pango_handler.pango_get_from_code_buffer(self.dad.treestore[tree_iter][2], sel_range)]
             self.pixbuf_table_codebox_vector = []
-            self.text_font = self.dad.code_font if self.dad.treestore[tree_iter][4] != cons.PLAIN_TEXT_ID else self.dad.text_font
+            self.text_font = self.dad.code_font if self.dad.treestore[tree_iter][4] != cons.PLAIN_TEXT_ID else self.dad.pt_font
         if include_node_name: self.pango_text_add_node_name(tree_iter, self.pango_text)
         self.run_print()
 
@@ -332,7 +332,7 @@ class Export2Txt:
         tree_iter_for_node_name = tree_iter if include_node_name else None
         if not single_txt_filepath:
             filepath = os.path.join(self.new_path,
-                                    support.get_node_hierarchical_name(self.dad, tree_iter) + ".txt")
+                                    support.get_node_hierarchical_name(self.dad, tree_iter, trailer=".txt"))
             self.node_export_to_txt(text_buffer, filepath, tree_iter_for_node_name=tree_iter_for_node_name)
         else:
             self.node_export_to_txt(text_buffer, single_txt_filepath, tree_iter_for_node_name=tree_iter_for_node_name)
@@ -468,7 +468,8 @@ class Export2Pango:
                 span_opened = False
                 former_tag_str = cons.COLOR_48_BLACK
                 pango_text += "</span>"
-            pango_text += cgi.escape(curr_iter.get_char())
+            try: pango_text += cgi.escape(curr_iter.get_char())
+            except: pass
             if not curr_iter.forward_char() or (sel_range and curr_iter.get_offset() > sel_range[1]):
                 if span_opened: pango_text += "</span>"
                 break
@@ -812,15 +813,7 @@ class Export2Html:
 
     def get_html_filename(self, tree_iter):
         """Get the HTML page filename given the tree iter"""
-        file_name = clean_text_to_utf8(self.dad.treestore[tree_iter][1]).strip()
-        father_iter = self.dad.treestore.iter_parent(tree_iter)
-        while father_iter:
-            file_name = clean_text_to_utf8(self.dad.treestore[father_iter][1]).strip() + "--" + file_name
-            father_iter = self.dad.treestore.iter_parent(father_iter)
-        file_name = support.clean_from_chars_not_for_filename(file_name) + ".html"
-        if len(file_name) > cons.MAX_FILE_NAME_LEN:
-            file_name = file_name[-cons.MAX_FILE_NAME_LEN:]
-        return file_name
+        return support.get_node_hierarchical_name(self.dad, tree_iter, trailer=".html").replace("#","~")
 
     def html_get_from_code_buffer(self, code_buffer, sel_range=None):
         """Get rich text from syntax highlighted code node"""

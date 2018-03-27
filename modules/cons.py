@@ -21,15 +21,15 @@
 
 import os
 import sys
+import tempfile
 
 
-VERSION = "0.38.0"
+VERSION = "0.38.4"
 APP_NAME = "cherrytree"
 NEWER_VERSION_URL = "http://www.giuspen.com/software/version_cherrytree"
 if sys.platform.startswith("win"):
     IS_WIN_OS = True
     SZA_PATH = '"'+os.path.join(SHARE_PATH, "7za.exe")+'"'
-    TMP_FOLDER = os.path.join(os.environ['TEMP'], 'ct_tmp/')
     GLADE_PATH = os.path.join(SHARE_PATH, 'glade/')
     SPECS_PATH = os.path.join(SHARE_PATH, 'language-specs/')
     LOCALE_PATH = os.path.join(SHARE_PATH, 'locale/')
@@ -40,7 +40,6 @@ if sys.platform.startswith("win"):
 else:
     IS_WIN_OS = False
     SZA_PATH = "7za"
-    TMP_FOLDER = '/tmp/ct_tmp/'
     MODULES_PATH = os.path.dirname(os.path.realpath(__file__))
     CONFIG_DIR = os.path.join(os.path.expanduser('~'), '.config', 'cherrytree')
     if SHARE_PATH == os.path.dirname(MODULES_PATH):
@@ -56,6 +55,7 @@ else:
 CONFIG_PATH = os.path.join(CONFIG_DIR, 'config.cfg')
 LANG_PATH = os.path.join(CONFIG_DIR, 'lang')
 IMG_PATH = os.path.join(CONFIG_DIR, 'img_tmp.png')
+TMP_FOLDER = tempfile.mkdtemp()
 
 try:
     import appindicator
@@ -64,8 +64,8 @@ except: HAS_APPINDICATOR = False
 XDG_CURRENT_DESKTOP = 'XDG_CURRENT_DESKTOP'
 HAS_SYSTRAY = not (XDG_CURRENT_DESKTOP in os.environ and os.environ[XDG_CURRENT_DESKTOP] == "Unity")
 
-AVAILABLE_LANGS = ['default', 'cs', 'de', 'el', 'en', 'es', 'fr', 'hy', 'it', 'ja', 'lt', 'nl', 'pl', 'pt_BR', 'ru', 'sl', 'tr', 'uk', 'zh_CN']
-COLOR_48_LINK_WEBS = "#00004444ffff"
+AVAILABLE_LANGS = ['default', 'cs', 'de', 'el', 'en', 'es', 'fi', 'fr', 'hy', 'it', 'ja', 'lt', 'nl', 'pl', 'pt_BR', 'ru', 'sl', 'tr', 'uk', 'zh_CN']
+COLOR_48_LINK_WEBS = "#00008989ffff"
 COLOR_48_LINK_NODE = "#071c838e071c"
 COLOR_48_LINK_FILE = "#8b8b69691414"
 COLOR_48_LINK_FOLD = "#7f7f7f7f7f7f"
@@ -132,7 +132,7 @@ ANCHOR_CHAR = GLADE_PATH + 'anchor.png'
 FILE_CHAR = GLADE_PATH + 'file_icon.png'
 
 MIN_CT_DOC_SIZE = 10
-MAX_FILE_NAME_LEN = 150
+MAX_FILE_NAME_LEN = 142
 WHITE_SPACE_BETW_PIXB_AND_TEXT = 3
 GRID_SLIP_OFFSET = 3
 MAIN_WIN_TO_TEXT_WIN_NORMALIZER = 50

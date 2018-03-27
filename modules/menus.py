@@ -536,6 +536,9 @@ def get_popup_menu_entries_code(dad):
     # "submenu-end", None, None, None, None
     return [
 (cons.TAG_SEPARATOR, None, None, None, None),
+get_menu_item_tuple(dad, "cut_plain"),
+get_menu_item_tuple(dad, "copy_plain"),
+(cons.TAG_SEPARATOR, None, None, None, None),
 get_menu_item_tuple(dad, "exec_code"),
 ("submenu-start", _("_Insert") , "insert", None, None),
 get_menu_item_tuple(dad, "insert_timestamp"),
@@ -633,6 +636,9 @@ def get_popup_menu_entries_codebox(dad):
     # "submenu-start", label, stock id, None, None |
     # "submenu-end", None, None, None, None
     return [
+(cons.TAG_SEPARATOR, None, None, None, None),
+("edit-cut", _("Cu_t as Plain Text"), KB_CONTROL+KB_SHIFT+"X", _("Cut as Plain Text, Discard the Rich Text Formatting"), dad.dad.cut_as_plain_text),
+("edit-copy", _("_Copy as Plain Text"), KB_CONTROL+KB_SHIFT+"C", _("Copy as Plain Text, Discard the Rich Text Formatting"), dad.dad.copy_as_plain_text),
 (cons.TAG_SEPARATOR, None, None, None, None),
 ("codebox_edit", _("Change CodeBox _Properties"), None, _("Edit the Properties of the CodeBox"), dad.codebox_change_properties),
 ("gtk-execute", _("_Execute CodeBox Code"), None, _("Execute CodeBox Code"), dad.dad.exec_code),

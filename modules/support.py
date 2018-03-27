@@ -62,7 +62,7 @@ def auto_decode_str(in_str, from_clipboard=False):
     elif in_str.startswith(("\xFF\xFE", "\xFE\xFF")): # UTF-16 BOMs
         encodings += [cons.STR_UTF16]
     elif from_clipboard:
-        if "html" in in_str or "HTML" in in_str:
+        if re.search(r"</[a-zA-Z]+>", in_str) is not None:
             encodings = [cons.STR_UTF8] + encodings
         else:
             encodings = [cons.STR_UTF16, cons.STR_UTF8] + encodings
@@ -271,9 +271,9 @@ def on_sourceview_event_after_scroll(dad, text_view, event):
     """Called after every gtk.gdk.SCROLL on the SourceView"""
     if dad.ctrl_down:
         if event.direction == gtk.gdk.SCROLL_UP:
-            dad.zoom_text_p()
+            dad.zoom_text(True)
         elif event.direction == gtk.gdk.SCROLL_DOWN:
-            dad.zoom_text_m()
+            dad.zoom_text(False)
     return False
 
 def on_sourceview_event_after_key_release(dad, text_view, event):
@@ -294,34 +294,34 @@ def on_sourceview_event_after_key_press(dad, text_view, event, syntax_highl):
     if not dad.ctrl_down:
         if keyname in cons.STR_KEYS_CONTROL:
             dad.ctrl_down = True
-    if dad.auto_smart_quotes and keyname in [cons.STR_KEY_DQUOTE, cons.STR_KEY_SQUOTE]:
-        if syntax_highl in [cons.RICH_TEXT_ID, cons.PLAIN_TEXT_ID]:
-            iter_insert = text_buffer.get_iter_at_mark(text_buffer.get_insert())
-            if iter_insert:
-                offset_1 = iter_insert.get_offset()-1
-                if offset_1 > 0:
-                    if keyname == cons.STR_KEY_DQUOTE:
-                        start_char = cons.CHAR_DQUOTE
-                        char_0 = cons.CHAR_SMART_DQUOTE_0
-                        char_1 = cons.CHAR_SMART_DQUOTE_1
-                    else:
-                        start_char = cons.CHAR_SQUOTE
-                        char_0 = cons.CHAR_SMART_SQUOTE_0
-                        char_1 = cons.CHAR_SMART_SQUOTE_1
-                    iter_start = text_buffer.get_iter_at_offset(offset_1-1)
-                    offset_0 = -1
-                    while iter_start:
-                        curr_char = iter_start.get_char()
-                        if curr_char == start_char:
-                            candidate_offset = iter_start.get_offset()
-                            if not iter_start.backward_char() or iter_start.get_char() in [cons.CHAR_NEWLINE, cons.CHAR_SPACE, cons.CHAR_TAB]:
-                                offset_0 = candidate_offset
-                            break
-                        if curr_char == cons.CHAR_NEWLINE: break
-                        if not iter_start.backward_char(): break
-                    if offset_0 >= 0:
-                        dad.replace_text_at_offset(char_0, offset_0, offset_0+1, text_buffer)
-                        dad.replace_text_at_offset(char_1, offset_1, offset_1+1, text_buffer)
+    is_code = syntax_highl not in (cons.RICH_TEXT_ID, cons.PLAIN_TEXT_ID)
+    if is_code is False and dad.auto_smart_quotes is True and keyname in (cons.STR_KEY_DQUOTE, cons.STR_KEY_SQUOTE):
+        iter_insert = text_buffer.get_iter_at_mark(text_buffer.get_insert())
+        if iter_insert:
+            offset_1 = iter_insert.get_offset()-1
+            if offset_1 > 0:
+                if keyname == cons.STR_KEY_DQUOTE:
+                    start_char = cons.CHAR_DQUOTE
+                    char_0 = cons.CHAR_SMART_DQUOTE_0
+                    char_1 = cons.CHAR_SMART_DQUOTE_1
+                else:
+                    start_char = cons.CHAR_SQUOTE
+                    char_0 = cons.CHAR_SMART_SQUOTE_0
+                    char_1 = cons.CHAR_SMART_SQUOTE_1
+                iter_start = text_buffer.get_iter_at_offset(offset_1-1)
+                offset_0 = -1
+                while iter_start:
+                    curr_char = iter_start.get_char()
+                    if curr_char == start_char:
+                        candidate_offset = iter_start.get_offset()
+                        if not iter_start.backward_char() or iter_start.get_char() in [cons.CHAR_NEWLINE, cons.CHAR_SPACE, cons.CHAR_TAB]:
+                            offset_0 = candidate_offset
+                        break
+                    if curr_char == cons.CHAR_NEWLINE: break
+                    if not iter_start.backward_char(): break
+                if offset_0 >= 0:
+                    dad.replace_text_at_offset(char_0, offset_0, offset_0+1, text_buffer)
+                    dad.replace_text_at_offset(char_1, offset_1, offset_1+1, text_buffer)
     elif (event.state & gtk.gdk.SHIFT_MASK):
         if keyname == cons.STR_KEY_RETURN:
             iter_insert = text_buffer.get_iter_at_mark(text_buffer.get_insert())
@@ -331,7 +331,7 @@ def on_sourceview_event_after_key_press(dad, text_view, event, syntax_highl):
             list_info = dad.lists_handler.get_paragraph_list_info(iter_start)
             if list_info:
                 text_buffer.insert(text_buffer.get_iter_at_mark(text_buffer.get_insert()), 3*(1+list_info["level"])*cons.CHAR_SPACE)
-    elif keyname in [cons.STR_KEY_RETURN, cons.STR_KEY_SPACE]:
+    elif keyname in (cons.STR_KEY_RETURN, cons.STR_KEY_SPACE):
         iter_insert = text_buffer.get_iter_at_mark(text_buffer.get_insert())
         if not iter_insert: return False
         if syntax_highl == cons.RICH_TEXT_ID:
@@ -398,8 +398,8 @@ def on_sourceview_event_after_key_press(dad, text_view, event, syntax_highl):
                     iter_start = text_buffer.get_iter_at_offset(end_offset)
                     new_num += 1
                     list_info = dad.lists_handler.get_next_list_info_on_level(iter_start, curr_level)
-        elif keyname == cons.STR_KEY_SPACE:
-            if iter_start.backward_chars(2):
+        else: # keyname == cons.STR_KEY_SPACE
+            if is_code is False and iter_start.backward_chars(2):
                 if iter_start.get_char() == cons.CHAR_GREATER and iter_start.backward_char():
                     if iter_start.get_line_offset() == 0:
                         # at line start
@@ -503,13 +503,26 @@ def sourceview_cursor_and_tooltips_handler(dad, text_view, x, y):
         text_view.get_window(gtk.TEXT_WINDOW_TEXT).set_cursor(gtk.gdk.Cursor(gtk.gdk.XTERM))
         text_view.set_tooltip_text(None)
 
-def rich_text_node_modify_codeboxes_font(start_iter, code_font):
+def rich_text_node_modify_tables_font(start_iter, dad):
+    """Modify Font to Tables"""
+    curr_iter = start_iter.copy()
+    while 1:
+        anchor = curr_iter.get_child_anchor()
+        if anchor and "liststore" in dir(anchor):
+            for renderer_text in anchor.renderers_text:
+                renderer_text.set_property('font-desc', pango.FontDescription(dad.pt_font))
+            anchor.treeview.set_model(None)
+            anchor.treeview.set_model(anchor.liststore)
+        if not curr_iter.forward_char(): break
+
+def rich_text_node_modify_codeboxes_font(start_iter, dad):
     """Modify Font to CodeBoxes"""
     curr_iter = start_iter.copy()
     while 1:
         anchor = curr_iter.get_child_anchor()
         if anchor and "sourcebuffer" in dir(anchor):
-            anchor.sourceview.modify_font(pango.FontDescription(code_font))
+            target_font = dad.code_font if anchor.syntax_highlighting != cons.PLAIN_TEXT_ID else dad.pt_font
+            anchor.sourceview.modify_font(pango.FontDescription(target_font))
         if not curr_iter.forward_char(): break
 
 def rich_text_node_modify_codeboxes_color(start_iter, dad):
@@ -557,17 +570,20 @@ def clean_from_chars_not_for_filename(filename_in):
     filename_out = filename_out.replace(cons.CHAR_NEWLINE, "").replace(cons.CHAR_CR, "").strip()
     return filename_out.replace(cons.CHAR_SPACE, cons.CHAR_USCORE)
 
-def get_node_hierarchical_name(dad, tree_iter, separator="--", for_filename=True, root_to_leaf=True):
+def get_node_hierarchical_name(dad, tree_iter, separator="--", for_filename=True, root_to_leaf=True, trailer=""):
     """Get the Node Hierarchical Name"""
-    hierarchical_name = dad.treestore[tree_iter][1].strip()
+    hierarchical_name = exports.clean_text_to_utf8(dad.treestore[tree_iter][1]).strip()
     father_iter = dad.treestore.iter_parent(tree_iter)
     while father_iter:
-        if root_to_leaf:
-            hierarchical_name = dad.treestore[father_iter][1].strip() + separator + hierarchical_name
+        father_name = exports.clean_text_to_utf8(dad.treestore[father_iter][1]).strip()
+        if root_to_leaf is True:
+            hierarchical_name = father_name + separator + hierarchical_name
         else:
-            hierarchical_name = hierarchical_name + separator + dad.treestore[father_iter][1].strip()
+            hierarchical_name = hierarchical_name + separator + father_name
         father_iter = dad.treestore.iter_parent(father_iter)
-    if for_filename:
+    if trailer:
+        hierarchical_name += trailer
+    if for_filename is True:
         hierarchical_name = clean_from_chars_not_for_filename(hierarchical_name)
         if len(hierarchical_name) > cons.MAX_FILE_NAME_LEN:
             hierarchical_name = hierarchical_name[-cons.MAX_FILE_NAME_LEN:]
@@ -861,6 +877,7 @@ MA 02110-1301, USA.
 _("Chinese Simplified")+" (zh_CN) Channing Wong <channing.wong@qq.com>"+cons.CHAR_NEWLINE+
 _("Czech")+" (cs) Pavel Fric <fripohled@blogspot.com>"+cons.CHAR_NEWLINE+
 _("Dutch")+" (nl) Luuk Geurts, Patrick Vijgeboom <pj.vijgeboom@gmail.com>"+cons.CHAR_NEWLINE+
+_("Finnish")+" (fi) Henri Kaustinen <hendrix.ks81@gmail.com>"+cons.CHAR_NEWLINE+
 _("French")+" (fr) Klaus Becker <colonius@free.fr>"+cons.CHAR_NEWLINE+
 _("German")+" (de) Frank Brungräber <calexu@arcor.de>"+cons.CHAR_NEWLINE+
 _("Greek")+" (el) Delphina <delphina.2009@yahoo.gr>"+cons.CHAR_NEWLINE+
@@ -1798,6 +1815,7 @@ def set_menu_items_recent_documents(dad):
             if i >= cons.MAX_RECENT_DOCS: break
             menu_item = gtk.ImageMenuItem(filepath)
             menu_item.set_image(gtk.image_new_from_stock("gtk-open", gtk.ICON_SIZE_MENU))
+            menu_item.set_use_underline(False)
             menu_item.connect("activate", open_recent_document, filepath, dad)
             menu_item.show()
             if target == 1: dad.recent_menu_1.append(menu_item)
@@ -1828,7 +1846,7 @@ def add_recent_document(dad, filepath):
 
 def insert_special_char(menu_item, special_char, dad):
     """A Special character insert was Requested"""
-    text_view, text_buffer, from_codebox = dad.get_text_view_n_buffer_codebox_proof()
+    text_view, text_buffer, syntax_highl, from_codebox = dad.get_text_view_n_buffer_codebox_proof()
     if not text_buffer: return
     if not dad.is_curr_node_not_read_only_or_error(): return
     text_buffer.insert_at_cursor(special_char)

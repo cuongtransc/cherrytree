@@ -263,7 +263,7 @@ class CodeBoxesHandler:
         anchor.sourceview.set_highlight_current_line(self.dad.pt_highl_curr_line)
         if self.dad.pt_show_white_spaces: anchor.sourceview.set_draw_spaces(DRAW_SPACES_FLAGS)
         if anchor.syntax_highlighting == cons.PLAIN_TEXT_ID:
-            anchor.sourceview.modify_font(pango.FontDescription(self.dad.text_font))
+            anchor.sourceview.modify_font(pango.FontDescription(self.dad.pt_font))
         else:
             anchor.sourceview.modify_font(pango.FontDescription(self.dad.code_font))
         anchor.sourceview.set_show_line_numbers(anchor.show_line_numbers)
@@ -384,7 +384,7 @@ class CodeBoxesHandler:
         self.curr_codebox_anchor.syntax_highlighting = self.dad.codebox_syn_highl
         self.dad.set_sourcebuffer_syntax_highlight(self.curr_codebox_anchor.sourcebuffer, self.curr_codebox_anchor.syntax_highlighting)
         if self.curr_codebox_anchor.syntax_highlighting == cons.PLAIN_TEXT_ID:
-            self.curr_codebox_anchor.sourceview.modify_font(pango.FontDescription(self.dad.text_font))
+            self.curr_codebox_anchor.sourceview.modify_font(pango.FontDescription(self.dad.pt_font))
         else:
             self.curr_codebox_anchor.sourceview.modify_font(pango.FontDescription(self.dad.code_font))
         self.curr_codebox_anchor.frame_width = int(self.dad.codebox_width)
@@ -406,6 +406,8 @@ class CodeBoxesHandler:
             return support.on_sourceview_event_after_button_press(self.dad, text_view, event)
         elif event.type == gtk.gdk.KEY_PRESS:
             return support.on_sourceview_event_after_key_press(self.dad, text_view, event, self.curr_codebox_anchor.syntax_highlighting)
+        elif event.type == gtk.gdk.SCROLL:
+            return support.on_sourceview_event_after_scroll(self.dad, text_view, event)
         return False
 
     def on_vscrollbar_event_after(self, vscrollbar, event, anchor):

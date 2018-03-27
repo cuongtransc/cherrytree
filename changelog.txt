@@ -1,4 +1,39 @@
 
+0.38.4 (December 2nd, 2017)
+  * support for zoom in tables (#292) with both Ctrl+Mouse Wheel or Ctrl+Plus/Minus
+  * copy/paste rich text with dark background to light background - fix too light color
+  * tree visible status now persistent after system tray hide/show and between sessions
+  * default value changes for web link color (less bright blue) and codebox auto resize (to False)
+  * no special chars auto replacements for code - only for rich and plain text (#293)
+  * paste from rich text and import from html - support fot tag <code> to codebox (#229)
+  * Tab key also valid to switch between table cell (#298)
+
+0.38.3 (October 30th, 2017)
+  * bugfix saving sqlite document (syntax error)
+  * plain text to have font independent from rich text (#258)
+  * right click menu inside of codeboxes, added cut/copy as plain text
+  * paste rich text from clipboard fix
+  * HTML-export IOError: 'filename too long' (#285)
+  * bugfix in export to pdf
+  * added Finnish language (Henri Kaustinen)
+
+0.38.2 (September 1st, 2017)
+  * bugfix in import from cherrytree file (links broken)
+  * bugfix in export to HTML ('#' in node name)
+  * left arrow key press with focus on an already collapsed tree node, now moves the selection to the node parent
+  * automatic syntax highlighting nodes - added right click menus cut & copy as plain text
+  * bugfix in recent filenames, problem with underscore character
+  * bugfix in import from keynote
+
+0.38.1 (June 9th, 2017)
+  * bugfix in export to txt
+  * bugfix in all matches dialog hide/restore selected line
+  * sqlite document: when save and vacuum, perform also the reindex
+  * added yaml syntax highlighting (Sergei Zyubin)
+  * bugfix unwanted syntax highlighting in plain text
+  * bugfix in import from rednotebook
+  * better implementation for the recent docs saving in config.cfg
+
 0.38.0 (February 15th, 2017)
   * added the timestamp of creation and latest modification per node and the possibility to filter the searches using these values
   * implemented the possibility to execute the code of code nodes and codeboxes (File--Execute Code); the terminal and the command per node type is configurable in the preferences dialog, tab "Plain Text and Code"

@@ -80,6 +80,7 @@ CHARS_TOC_DEFAULT = unicode("▸•◇▪", cons.STR_UTF8, cons.STR_IGNORE)
 NODES_ON_NODE_NAME_HEADER_DEFAULT = 3
 TIMESTAMP_FORMAT_DEFAULT = "%Y-%m-%d %H:%M:%S"
 SEPARATOR_ASCII_REPR = "---------"
+JOURNAL_DAY_FORMAT_DEFAULT = "%d %a"
 
 SPELL_CHECK_LANG_DEFAULT = locale.getdefaultlocale()[0]
 
@@ -195,6 +196,7 @@ def config_file_load(dad):
             win_size = [cfg.getint(section, "win_size_w"), cfg.getint(section, "win_size_h")]
             dad.window.resize(win_size[0], win_size[1])
         dad.hpaned_pos = cfg.getint(section, "hpaned_pos") if cfg.has_option(section, "hpaned_pos") else 170
+        dad.tree_visible = cfg.getboolean(section, "tree_visible") if cfg.has_option(section, "tree_visible") else True
         if cfg.has_option(section, "node_path"):
             # restore the selected node
             dad.node_path = get_node_path_from_str(cfg.get(section, "node_path"))
@@ -307,7 +309,7 @@ def config_file_load(dad):
         dad.codebox_line_num = cfg.getboolean(section, "codebox_line_num") if cfg.has_option(section, "codebox_line_num") else False
         dad.codebox_match_bra = cfg.getboolean(section, "codebox_match_bra") if cfg.has_option(section, "codebox_match_bra") else True
         dad.codebox_syn_highl = cfg.get(section, "codebox_syn_highl") if cfg.has_option(section, "codebox_syn_highl") else cons.PLAIN_TEXT_ID
-        dad.codebox_auto_resize = cfg.getboolean(section, "codebox_auto_resize") if cfg.has_option(section, "codebox_auto_resize") else True
+        dad.codebox_auto_resize = cfg.getboolean(section, "codebox_auto_resize") if cfg.has_option(section, "codebox_auto_resize") else False
 
         section = "table"
         dad.table_rows = cfg.getint(section, "table_rows") if cfg.has_option(section, "table_rows") else 3
@@ -317,10 +319,10 @@ def config_file_load(dad):
         dad.table_col_max = cfg.getint(section, "table_col_max") if cfg.has_option(section, "table_col_max") else 60
 
         section = "fonts"
-        dad.text_font = cfg.get(section, "text_font") if cfg.has_option(section, "text_font") else "Open Sans 12" # default text font
+        dad.rt_font = cfg.get(section, "rt_font") if cfg.has_option(section, "rt_font") else "Open Sans 12" # default rich text font
+        dad.pt_font = cfg.get(section, "pt_font") if cfg.has_option(section, "pt_font") else "Open Sans 12" # default plain text font
         dad.tree_font = cfg.get(section, "tree_font") if cfg.has_option(section, "tree_font") else "Open Sans 10" # default tree font
-        dad.code_font = cfg.get(section, "code_font") if cfg.has_option(
-            section, "code_font") else "Source Code Pro 10" # default code font
+        dad.code_font = cfg.get(section, "code_font") if cfg.has_option(section, "code_font") else "Source Code Pro 10" # default code font
 
         section = "colors"
         dad.rt_def_fg = cfg.get(section, "rt_def_fg") if cfg.has_option(section, "rt_def_fg") else cons.RICH_TEXT_DARK_FG
@@ -352,6 +354,7 @@ def config_file_load(dad):
         dad.backup_num = cfg.getint(section, "backup_num") if cfg.has_option(section, "backup_num") else 3
         dad.autosave_on_quit = cfg.getboolean(section, "autosave_on_quit") if cfg.has_option(section, "autosave_on_quit") else False
         dad.limit_undoable_steps = cfg.getint(section, "limit_undoable_steps") if cfg.has_option(section, "limit_undoable_steps") else 20
+        dad.journal_day_format = cfg.get(section, "journal_day_format") if cfg.has_option(section, "journal_day_format") else JOURNAL_DAY_FORMAT_DEFAULT
         #print "read", cons.CONFIG_PATH, "('%s', '%s')" % (dad.file_name, dad.file_dir)
         section = "keyboard"
         if cfg.has_section(section):
@@ -379,7 +382,8 @@ def config_file_load(dad):
         dad.auto_syn_highl = "sh"
         dad.style_scheme = cons.STYLE_SCHEME_TANGO
         dad.tree_font = "Open Sans 10" # default tree font
-        dad.text_font = "Open Sans 12" # default text font
+        dad.rt_font = "Open Sans 12" # default rich text font
+        dad.pt_font = "Open Sans 12" # default plain text font
         dad.code_font = "Source Code Pro 10" # default code font
         dad.rt_def_fg = cons.RICH_TEXT_LIGHT_FG
         dad.rt_def_bg = cons.RICH_TEXT_LIGHT_BG
@@ -450,7 +454,7 @@ def config_file_load(dad):
         dad.codebox_line_num = False
         dad.codebox_match_bra = True
         dad.codebox_syn_highl = cons.PLAIN_TEXT_ID
-        dad.codebox_auto_resize = True
+        dad.codebox_auto_resize = False
         dad.check_version = False
         dad.word_count = False
         dad.reload_doc_last = True
@@ -468,17 +472,20 @@ def config_file_load(dad):
         dad.space_around_lines = 0
         dad.relative_wrapped_space = 50
         dad.hpaned_pos = 170
+        dad.tree_visible = True
         dad.show_node_name_header = True
         dad.nodes_on_node_name_header = NODES_ON_NODE_NAME_HEADER_DEFAULT
         dad.nodes_icons = "c"
         dad.default_icon_text = cons.NODE_ICON_BULLET_ID
         dad.recent_docs = []
         dad.toolbar_visible = True
+        dad.journal_day_format = JOURNAL_DAY_FORMAT_DEFAULT
         print "missing", cons.CONFIG_PATH
 
 def config_file_apply(dad):
     """Apply the Preferences from Config File"""
     dad.hpaned.set_property('position', dad.hpaned_pos)
+    dad.scrolledwindow_tree.set_property(cons.STR_VISIBLE, dad.tree_visible)
     dad.header_node_name_hbox.set_property(cons.STR_VISIBLE, dad.show_node_name_header)
     dad.update_node_name_header_num_latest_visited()
     dad.set_treeview_font()
@@ -528,6 +535,7 @@ def config_file_save(dad):
         cfg.set(section, "win_size_w", win_size[0])
         cfg.set(section, "win_size_h", win_size[1])
     cfg.set(section, "hpaned_pos", dad.hpaned.get_property('position'))
+    cfg.set(section, "tree_visible", dad.tree_visible)
     if dad.curr_tree_iter:
         cfg.set(section, "node_path", get_node_path_str_from_path(dad.treestore.get_path(dad.curr_tree_iter)))
         cfg.set(section, "cursor_position", dad.curr_buffer.get_property(cons.STR_CURSOR_POSITION))
@@ -636,7 +644,8 @@ def config_file_save(dad):
 
     section = "fonts"
     cfg.add_section(section)
-    cfg.set(section, "text_font", dad.text_font)
+    cfg.set(section, "rt_font", dad.rt_font)
+    cfg.set(section, "pt_font", dad.pt_font)
     cfg.set(section, "tree_font", dad.tree_font)
     cfg.set(section, "code_font", dad.code_font)
 
@@ -669,6 +678,7 @@ def config_file_save(dad):
     cfg.set(section, "backup_num", dad.backup_num)
     cfg.set(section, "autosave_on_quit", dad.autosave_on_quit)
     cfg.set(section, "limit_undoable_steps", dad.limit_undoable_steps)
+    cfg.set(section, "journal_day_format", dad.journal_day_format)
 
     section = "keyboard"
     cfg.add_section(section)
@@ -1631,30 +1641,37 @@ def preferences_tab_fonts(dad, vbox_fonts, pref_dialog):
     """Preferences Dialog, Fonts Tab"""
     for child in vbox_fonts.get_children(): child.destroy()
 
-    image_text = gtk.Image()
-    image_text.set_from_stock(gtk.STOCK_SELECT_FONT, gtk.ICON_SIZE_MENU)
+    image_rt = gtk.Image()
+    image_rt.set_from_stock(gtk.STOCK_SELECT_FONT, gtk.ICON_SIZE_MENU)
+    image_pt = gtk.Image()
+    image_pt.set_from_stock(gtk.STOCK_SELECT_FONT, gtk.ICON_SIZE_MENU)
     image_code = gtk.Image()
-    image_code.set_from_stock(gtk.STOCK_SELECT_FONT, gtk.ICON_SIZE_MENU)
+    image_code.set_from_stock("xml", gtk.ICON_SIZE_MENU)
     image_tree = gtk.Image()
-    image_tree.set_from_stock('cherries', gtk.ICON_SIZE_MENU)
-    label_text = gtk.Label(_("Text Font"))
+    image_tree.set_from_stock("cherries", gtk.ICON_SIZE_MENU)
+    label_rt = gtk.Label(_("Rich Text"))
+    label_pt = gtk.Label(_("Plain Text"))
     label_code = gtk.Label(_("Code Font"))
     label_tree = gtk.Label(_("Tree Font"))
-    fontbutton_text = gtk.FontButton(fontname=dad.text_font)
+    fontbutton_rt = gtk.FontButton(fontname=dad.rt_font)
+    fontbutton_pt = gtk.FontButton(fontname=dad.pt_font)
     fontbutton_code = gtk.FontButton(fontname=dad.code_font)
     fontbutton_tree = gtk.FontButton(fontname=dad.tree_font)
-    table_fonts = gtk.Table(3, 3)
+    table_fonts = gtk.Table(4, 3)
     table_fonts.set_row_spacings(2)
     table_fonts.set_col_spacings(4)
-    table_fonts.attach(image_text, 0, 1, 0, 1, 0, 0)
-    table_fonts.attach(image_code, 0, 1, 1, 2, 0, 0)
-    table_fonts.attach(image_tree, 0, 1, 2, 3, 0, 0)
-    table_fonts.attach(label_text, 1, 2, 0, 1, 0, 0)
-    table_fonts.attach(label_code, 1, 2, 1, 2, 0, 0)
-    table_fonts.attach(label_tree, 1, 2, 2, 3, 0, 0)
-    table_fonts.attach(fontbutton_text, 2, 3, 0, 1, yoptions=0)
-    table_fonts.attach(fontbutton_code, 2, 3, 1, 2, yoptions=0)
-    table_fonts.attach(fontbutton_tree, 2, 3, 2, 3, yoptions=0)
+    table_fonts.attach(image_rt, 0, 1, 0, 1, 0, 0)
+    table_fonts.attach(image_pt, 0, 1, 1, 2, 0, 0)
+    table_fonts.attach(image_code, 0, 1, 2, 3, 0, 0)
+    table_fonts.attach(image_tree, 0, 1, 3, 4, 0, 0)
+    table_fonts.attach(label_rt, 1, 2, 0, 1, 0, 0)
+    table_fonts.attach(label_pt, 1, 2, 1, 2, 0, 0)
+    table_fonts.attach(label_code, 1, 2, 2, 3, 0, 0)
+    table_fonts.attach(label_tree, 1, 2, 3, 4, 0, 0)
+    table_fonts.attach(fontbutton_rt, 2, 3, 0, 1, yoptions=0)
+    table_fonts.attach(fontbutton_pt, 2, 3, 1, 2, yoptions=0)
+    table_fonts.attach(fontbutton_code, 2, 3, 2, 3, yoptions=0)
+    table_fonts.attach(fontbutton_tree, 2, 3, 3, 4, yoptions=0)
 
     frame_fonts = gtk.Frame(label="<b>"+_("Fonts")+"</b>")
     frame_fonts.get_label_widget().set_use_markup(True)
@@ -1665,18 +1682,27 @@ def preferences_tab_fonts(dad, vbox_fonts, pref_dialog):
     frame_fonts.add(align_fonts)
 
     vbox_fonts.pack_start(frame_fonts, expand=False)
-    def on_fontbutton_text_font_set(picker):
-        dad.text_font = picker.get_font_name()
-        if dad.curr_tree_iter and dad.syntax_highlighting in [cons.RICH_TEXT_ID, cons.PLAIN_TEXT_ID]:
-            dad.sourceview.modify_font(pango.FontDescription(dad.text_font))
-    fontbutton_text.connect('font-set', on_fontbutton_text_font_set)
+    def on_fontbutton_rt_font_set(picker):
+        dad.rt_font = picker.get_font_name()
+        if dad.curr_tree_iter and dad.syntax_highlighting == cons.RICH_TEXT_ID:
+            dad.sourceview.modify_font(pango.FontDescription(dad.rt_font))
+    fontbutton_rt.connect('font-set', on_fontbutton_rt_font_set)
+    def on_fontbutton_pt_font_set(picker):
+        dad.pt_font = picker.get_font_name()
+        if not dad.curr_tree_iter: return
+        if dad.syntax_highlighting == cons.PLAIN_TEXT_ID:
+            dad.sourceview.modify_font(pango.FontDescription(dad.pt_font))
+        elif dad.syntax_highlighting == cons.RICH_TEXT_ID:
+            support.rich_text_node_modify_codeboxes_font(dad.curr_buffer.get_start_iter(), dad)
+            support.rich_text_node_modify_tables_font(dad.curr_buffer.get_start_iter(), dad)
+    fontbutton_pt.connect('font-set', on_fontbutton_pt_font_set)
     def on_fontbutton_code_font_set(picker):
         dad.code_font = picker.get_font_name()
         if not dad.curr_tree_iter: return
         if dad.syntax_highlighting not in [cons.RICH_TEXT_ID, cons.PLAIN_TEXT_ID]:
             dad.sourceview.modify_font(pango.FontDescription(dad.code_font))
-        else:
-            support.rich_text_node_modify_codeboxes_font(dad.curr_buffer.get_start_iter(), dad.code_font)
+        elif dad.syntax_highlighting == cons.RICH_TEXT_ID:
+            support.rich_text_node_modify_codeboxes_font(dad.curr_buffer.get_start_iter(), dad)
     fontbutton_code.connect('font-set', on_fontbutton_code_font_set)
     def on_fontbutton_tree_font_set(picker):
         dad.tree_font = picker.get_font_name()
