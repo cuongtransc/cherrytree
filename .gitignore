@@ -90,3 +90,6 @@ crashlytics-build.properties
 *.mo
 linux/cherrytree.1.gz
 7za.exe
+
+# Ignore tmp/
+tmp/
