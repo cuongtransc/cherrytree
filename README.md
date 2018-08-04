@@ -15,11 +15,15 @@ sudo apt-get install -y p7zip-full python-appindicator python-dbus python-enchan
 ## Clone Source Code and Install Libraries
 
 ```sh
-git clone https://github.com/tranhuucuong91/cherrytree
+git clone https://github.com/cuongtransc/cherrytree
 
 cd cherrytree
 
 sudo pip install -r requirements.txt
+
+# Install
+sudo python setup.py install
+
 ```
 
 ## Run CherryTree
