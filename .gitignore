@@ -86,6 +86,9 @@ com_crashlytics_export_strings.xml
 crashlytics.properties
 crashlytics-build.properties
 
+# Ignore vscode settings
+.vscode/
+
 # Ignore language translation
 *.mo
 linux/cherrytree.1.gz
@@ -93,3 +96,15 @@ linux/cherrytree.1.gz
 
 # Ignore tmp/
 tmp/
+*.pyc
+*.mo
+linux/cherrytree.1.gz
+*.exe
+*.o
+*.gmo
+*.in
+*~
+*.sed
+*.sin
+*Makefile
+debian/files

@@ -49,7 +49,7 @@ import lists
 import findreplace
 import codeboxes
 import ctdb
-import screenshot
+#import screenshot
 
 if cons.HAS_APPINDICATOR: import appindicator
 
@@ -1729,7 +1729,7 @@ iter_end, exclude_iter_sel_end=True)
                     print "os.rename failed"
                     subprocess.call("mv %s~ %s" % (re.escape(filepath), re.escape(filepath)), shell=True)
             support.dialog_error("%s write failed - writing to disk" % filepath, self.window)
-            #raise
+            raise
             self.writing_to_disk = False
             return False
 
@@ -2541,7 +2541,7 @@ iter_end, exclude_iter_sel_end=True)
 
     def on_help_menu_item_activated(self, menuitem, data=None):
         """Show the Online Manual"""
-        webbrowser.open("http://giuspen.com/cherrytreemanual/Introduction.html")
+        webbrowser.open("http://giuspen.com/cherrytreemanual/")
 
     def on_window_focus_out_event(self, widget, event, data=None):
         """When the main windows loses the focus (e.g. dialog)"""
@@ -2803,6 +2803,7 @@ iter_end, exclude_iter_sel_end=True)
     def node_delete(self, *args):
         """Delete the Selected Node"""
         if not self.is_there_selected_node_or_error(): return
+        if not self.is_curr_node_not_read_only_or_error(): return
         warning_label = _("Are you sure to <b>Delete the node '%s'?</b>") % self.treestore[self.curr_tree_iter][1]
         if self.treestore.iter_children(self.curr_tree_iter) != None:
             warning_label += cons.CHAR_NEWLINE*2+_("The node <b>has Children, they will be Deleted too!</b>")
@@ -4061,26 +4062,26 @@ iter_end, exclude_iter_sel_end=True)
         except:
             support.dialog_error(_("Image Format Not Recognized"), self.window)
 
-    def screenshot_handle(self, *args):
-        """Insert/Edit Screenshot"""
-        if not self.node_sel_and_rich_text(): return
-        if not self.is_curr_node_not_read_only_or_error(): return
-        iter_insert = self.curr_buffer.get_iter_at_mark(self.curr_buffer.get_insert())
+    # def screenshot_handle(self, *args):
+        # """Insert/Edit Screenshot"""
+        # if not self.node_sel_and_rich_text(): return
+        # if not self.is_curr_node_not_read_only_or_error(): return
+        # iter_insert = self.curr_buffer.get_iter_at_mark(self.curr_buffer.get_insert())
 
-        ret_dict = {"x": None, "o": False}
-        dialog = screenshot.ScreenshotWindow(ret_dict)
-        while ret_dict["o"] is False:
-            while gtk.events_pending(): gtk.main_iteration()
-            time.sleep(.01)
-        dialog.destroy()
-        if ret_dict["x"] is None: return
-        while gtk.events_pending(): gtk.main_iteration()
-        pixbuf = gtk.gdk.Pixbuf.get_from_drawable(
-                    gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, True, 8, ret_dict["w"], ret_dict["h"]),
-                    gtk.gdk.get_default_root_window(),
-                    gtk.gdk.colormap_get_system(),
-                    ret_dict["x"], ret_dict["y"], 0, 0, ret_dict["w"], ret_dict["h"])
-        self.image_edit_dialog(pixbuf, self.curr_buffer.get_iter_at_mark(self.curr_buffer.get_insert()))
+        # ret_dict = {"x": None, "o": False}
+        # dialog = screenshot.ScreenshotWindow(ret_dict)
+        # while ret_dict["o"] is False:
+            # while gtk.events_pending(): gtk.main_iteration()
+            # time.sleep(.01)
+        # dialog.destroy()
+        # if ret_dict["x"] is None: return
+        # while gtk.events_pending(): gtk.main_iteration()
+        # pixbuf = gtk.gdk.Pixbuf.get_from_drawable(
+                    # gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, True, 8, ret_dict["w"], ret_dict["h"]),
+                    # gtk.gdk.get_default_root_window(),
+                    # gtk.gdk.colormap_get_system(),
+                    # ret_dict["x"], ret_dict["y"], 0, 0, ret_dict["w"], ret_dict["h"])
+        # self.image_edit_dialog(pixbuf, self.curr_buffer.get_iter_at_mark(self.curr_buffer.get_insert()))
 
     def image_edit_dialog(self, pixbuf, insert_iter, iter_bound=None):
         """Insert/Edit Image Dialog"""
@@ -4873,6 +4874,12 @@ iter_end, exclude_iter_sel_end=True)
                 if anchor and hasattr(anchor, "sourcebuffer"):
                     anchor.sourceview.grab_focus()
                     return True
+                list_info = self.lists_handler.get_paragraph_list_info(iter_insert)
+                if list_info and list_info["num"] == 0:
+                    if self.is_curr_node_not_read_only_or_error():
+                        iter_start_list = self.curr_buffer.get_iter_at_offset(list_info["startoffs"])
+                        self.lists_handler.todo_list_rotate_status(iter_start_list, self.curr_buffer)
+                        return True
             elif keyname == cons.STR_KEY_RETURN:
                 iter_insert = self.curr_buffer.get_iter_at_mark(self.curr_buffer.get_insert())
                 if iter_insert: self.cursor_key_press = iter_insert.get_offset()

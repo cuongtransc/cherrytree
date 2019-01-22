@@ -1,21 +1,20 @@
 
 AC_INIT([CherryTree], [0.1], [giuspen@gmail.com],
-        [cherrytree], [http://www.giuspen.com])
+        [cherrytree], [https://www.giuspen.com/])
 AC_PREREQ([2.59])
-AM_INIT_AUTOMAKE([1.10 -Wall no-define])
+AM_INIT_AUTOMAKE([1.10])
 
 AC_CONFIG_HEADERS([config.h])
 
-# check for C and Cpp compiler
 AC_PROG_CC
 AC_PROG_CXX
+AC_PROG_RANLIB
+AM_PROG_AR
 
-# shared library framework (7za)
-LT_INIT
+AX_CXX_COMPILE_STDCXX_14
 
-PKG_CHECK_MODULES([CHERRYTREE], [gtkmm-3.0 glibmm-2.4 libxml++-2.6 sqlite3])
+PKG_CHECK_MODULES([CHERRYTREE], [gtkmm-3.0 gtksourceviewmm-3.0 glibmm-2.4 pangomm-1.4 libxml++-2.6 sqlite3 cpputest])
 
-# change default prefix
 AC_PREFIX_DEFAULT("/usr")
 
 AC_CONFIG_FILES([po/Makefile.in Makefile])

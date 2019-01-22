@@ -1,9 +1,10 @@
-cherrytree (0.38.5-0) xenial; urgency=low
+cherrytree (0.38.7-0) bionic; urgency=low
 
-  * bugfix - when save on exit is enabled and write to disk fails, changes are lost (#358)
-  * bugfix - superscript and subscript tags not recognized when copied from external source (#355)
-  * bugfix - workaround for bug in locale module (#368)
-  * added syntax highlighting for go language
-  * implemented support for opening a text file from the command line with cherrytree
+  * bugfix - problem of locale.getdefaultlocale behavioural change in python (#412)
+  * bugfix - must not allow deletion of a node that is read only (#419)
+  * allow deletion of a recent documents entry via entry submenu (#382)
+  * renamed two iterated find dialog labels from Find & Find to Find Previous & Find Next (#423)
+  * moved python-appindicator from Depends: to Recommends: (#401)
+  * export to html, include node name not working without links tree (#417)
 
- -- Giuseppe Penone <giuspen@gmail.com>  Tue, 03 Jul 2018 21:57:22 +0100
+ -- Giuseppe Penone <giuspen@gmail.com>  Sun, 16 Dec 2018 13:34:08 +0000
