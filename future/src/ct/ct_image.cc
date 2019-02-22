@@ -51,6 +51,21 @@ CtImage::CtImage(const char* stockImage,
     show_all();
 }
 
+Glib::RefPtr<Gdk::Pixbuf> CtImage::get_icon(const std::string& name, int size)
+{
+    if (CtApp::R_icontheme->has_icon(name))
+        return CtApp::R_icontheme->load_icon(name, size);
+    return Glib::RefPtr<Gdk::Pixbuf>();
+}
+
+Gtk::Image* CtImage::new_image_from_stock(const std::string& stockImage, int size)
+{
+    Gtk::Image* image = Gtk::manage(new Gtk::Image());
+    image->set_from_icon_name(stockImage, Gtk::BuiltinIconSize::ICON_SIZE_BUTTON);
+    //image->set(get_icon(stockImage, size));
+    return image;
+}
+
 
 CtImagePng::CtImagePng(const std::string& rawBlob,
                        const Glib::ustring& link,

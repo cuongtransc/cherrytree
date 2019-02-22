@@ -10,7 +10,7 @@
 class CtPrefDlg : public Gtk::Dialog
 {
 public:
-    CtPrefDlg(Gtk::Window& parent, CtMenu* pCtMenu);
+    CtPrefDlg(CtMainWin* parent, CtMenu* pCtMenu);
 
 private:
     Gtk::Widget* build_tab_text_n_code();
@@ -35,16 +35,8 @@ private:
     const std::string reset_warning = std::string("<b>")+_("Are you sure to Reset to Default?")+"</b>";
 
 private:
-    Glib::RefPtr<Gdk::Pixbuf> get_icon(const std::string& name);
-    Gtk::Image*               new_image_from_stock(const std::string& id, Gtk::IconSize size);
-    std::string               rgb_any_to_24(Gdk::RGBA color);
-    std::string               rgb_to_string(Gdk::RGBA color);
-    bool                      user_confirm(const std::string& warning);
-    void                      user_inform(const std::string& info);
-    void                      need_restart(RESTART_REASON reason, const gchar* msg = nullptr);
-    Gtk::TreeModel::iterator  choose_item_dialog(const std::string& title, Glib::RefPtr<Gtk::ListStore> model);
+    void need_restart(RESTART_REASON reason, const gchar* msg = nullptr);
 
-private:
     std::string get_code_exec_term_run();
 
     void fill_commands_model(Glib::RefPtr<Gtk::ListStore> model);
@@ -73,7 +65,7 @@ private:
     UniversalModelColumns _commandModelColumns;
     UniversalModelColumns _toolbarModelColumns;
     UniversalModelColumns _shortcutModelColumns;
-    UniversalModelColumns _chooseItemColumns;
+    CtMainWin*            _pCtMainWin;
     CtMenu*               _pCtMenu;
     int                   _restartReasons;
 };

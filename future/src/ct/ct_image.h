@@ -37,6 +37,11 @@ public:
             const int& charOffset,
             const std::string& justification);
     virtual ~CtImage() {}
+
+public:
+    static Glib::RefPtr<Gdk::Pixbuf> get_icon(const std::string& name, int size);
+    static Gtk::Image*               new_image_from_stock(const std::string& stockImage, int size);
+
 protected:
     Gtk::Image _image;
     Glib::RefPtr<Gdk::Pixbuf> _rPixbuf;

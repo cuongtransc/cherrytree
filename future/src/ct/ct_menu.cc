@@ -54,7 +54,7 @@ CtMenu::CtMenu()
     _rGtkBuilder = Gtk::Builder::create();
 }
 
-void CtMenu::init_actions(CtApp *pApp)
+void CtMenu::init_actions(CtApp *pApp, CtActions* pActions)
 {
     // stubs for menu bar
     _actions.push_back(CtAction{"", "FileMenu", None, _("_File"), None, None, sigc::signal<void>()});
@@ -141,52 +141,52 @@ void CtMenu::init_actions(CtApp *pApp)
     _actions.push_back(CtAction{fmt_cat, "fmt_justify_right", "gtk-justify-right", _("Justify _Right"), None, _("Justify Right the Current Paragraph"), sigc::signal<void>() /* dad.apply_tag_justify_right */});
     _actions.push_back(CtAction{fmt_cat, "fmt_justify_fill", "gtk-justify-fill", _("Justify _Fill"), None, _("Justify Fill the Current Paragraph"), sigc::signal<void>() /* dad.apply_tag_justify_fill */});
     const char* tree_cat = _("Tree");
-    _actions.push_back(CtAction{tree_cat, "tree_add_node", "tree-node-add", _("Add _Node"), KB_CONTROL+"N", _("Add a Node having the same Parent of the Selected Node"), sigc::mem_fun(*pApp, &CtApp::add_node) /* dad.node_add */});
-    _actions.push_back(CtAction{tree_cat, "tree_add_subnode", "tree-subnode-add", _("Add _SubNode"), KB_CONTROL+KB_SHIFT+"N", _("Add a Child Node to the Selected Node"), sigc::signal<void>() /* dad.node_child_add */});
-    _actions.push_back(CtAction{tree_cat, "tree_dup_node", "tree-node-dupl", _("_Duplicate Node"), KB_CONTROL+KB_SHIFT+"D", _("Duplicate the Selected Node"), sigc::signal<void>() /* dad.node_duplicate */});
-    _actions.push_back(CtAction{tree_cat, "tree_node_prop", "cherry_edit", _("Change Node _Properties"), "F2", _("Edit the Properties of the Selected Node"), sigc::signal<void>() /* dad.node_edit */});
-    _actions.push_back(CtAction{tree_cat, "tree_node_toggle_ro", "locked", _("Toggle _Read Only"), KB_CONTROL+KB_ALT+"R", _("Toggle the Read Only Property of the Selected Node"), sigc::signal<void>() /* dad.node_toggle_read_only */});
-    _actions.push_back(CtAction{tree_cat, "tree_node_date", "calendar", _("Insert Today's Node"), "F8", _("Insert a Node with Hierarchy Year/Month/Day"), sigc::signal<void>() /* dad.node_date */});
+    _actions.push_back(CtAction{tree_cat, "tree_add_node", "tree-node-add", _("Add _Node"), KB_CONTROL+"N", _("Add a Node having the same Parent of the Selected Node"), sigc::mem_fun(*pActions, &CtActions::node_add)});
+    _actions.push_back(CtAction{tree_cat, "tree_add_subnode", "tree-subnode-add", _("Add _SubNode"), KB_CONTROL+KB_SHIFT+"N", _("Add a Child Node to the Selected Node"), sigc::mem_fun(*pActions, &CtActions::node_child_add)});
+    _actions.push_back(CtAction{tree_cat, "tree_dup_node", "tree-node-dupl", _("_Duplicate Node"), KB_CONTROL+KB_SHIFT+"D", _("Duplicate the Selected Node"), sigc::mem_fun(*pActions, &CtActions::node_dublicate)});
+    _actions.push_back(CtAction{tree_cat, "tree_node_prop", "cherry_edit", _("Change Node _Properties"), "F2", _("Edit the Properties of the Selected Node"), sigc::mem_fun(*pActions, &CtActions::node_edit)});
+    _actions.push_back(CtAction{tree_cat, "tree_node_toggle_ro", "locked", _("Toggle _Read Only"), KB_CONTROL+KB_ALT+"R", _("Toggle the Read Only Property of the Selected Node"), sigc::mem_fun(*pActions, &CtActions::node_toggle_read_only)});
+    _actions.push_back(CtAction{tree_cat, "tree_node_date", "calendar", _("Insert Today's Node"), "F8", _("Insert a Node with Hierarchy Year/Month/Day"), sigc::mem_fun(*pActions, &CtActions::node_date)});
     _actions.push_back(CtAction{tree_cat, "tree_parse_info", "gtk-info", _("Tree _Info"), None, _("Tree Summary Information"), sigc::signal<void>() /* dad.tree_info */});
-    _actions.push_back(CtAction{tree_cat, "tree_node_up", "gtk-go-up", _("Node _Up"), KB_SHIFT+CtConst::STR_KEY_UP, _("Move the Selected Node Up"), sigc::signal<void>() /* dad.node_up */});
-    _actions.push_back(CtAction{tree_cat, "tree_node_down", "gtk-go-down", _("Node _Down"), KB_SHIFT+CtConst::STR_KEY_DOWN, _("Move the Selected Node Down"), sigc::signal<void>() /* dad.node_down */});
-    _actions.push_back(CtAction{tree_cat, "tree_node_left", "gtk-go-back", _("Node _Left"), KB_SHIFT+CtConst::STR_KEY_LEFT, _("Move the Selected Node Left"), sigc::signal<void>() /* dad.node_left */});
-    _actions.push_back(CtAction{tree_cat, "tree_node_right", "gtk-go-forward", _("Node _Right"), KB_SHIFT+CtConst::STR_KEY_RIGHT, _("Move the Selected Node Right"), sigc::signal<void>() /* dad.node_right */});
-    _actions.push_back(CtAction{tree_cat, "tree_node_new_father", "gtk-jump-to", _("Node Change _Parent"), KB_CONTROL+KB_SHIFT+CtConst::STR_KEY_RIGHT, _("Change the Selected Node's Parent"), sigc::signal<void>() /* dad.node_change_father */});
-    _actions.push_back(CtAction{tree_cat, "tree_all_sort_asc", "gtk-sort-ascending", _("Sort Tree _Ascending"), None, _("Sort the Tree Ascending"), sigc::signal<void>() /* dad.tree_sort_ascending */});
-    _actions.push_back(CtAction{tree_cat, "tree_all_sort_desc", "gtk-sort-descending", _("Sort Tree _Descending"), None, _("Sort the Tree Descending"), sigc::signal<void>() /* dad.tree_sort_descending */});
-    _actions.push_back(CtAction{tree_cat, "tree_sibl_sort_asc", "gtk-sort-ascending", _("Sort Siblings A_scending"), None, _("Sort all the Siblings of the Selected Node Ascending"), sigc::signal<void>() /* dad.node_siblings_sort_ascending */});
-    _actions.push_back(CtAction{tree_cat, "tree_sibl_sort_desc", "gtk-sort-descending", _("Sort Siblings D_escending"), None, _("Sort all the Siblings of the Selected Node Descending"), sigc::signal<void>() /* dad.node_siblings_sort_descending */});
+    _actions.push_back(CtAction{tree_cat, "tree_node_up", "gtk-go-up", _("Node _Up"), KB_SHIFT+CtConst::STR_KEY_UP, _("Move the Selected Node Up"), sigc::mem_fun(*pActions, &CtActions::node_up)});
+    _actions.push_back(CtAction{tree_cat, "tree_node_down", "gtk-go-down", _("Node _Down"), KB_SHIFT+CtConst::STR_KEY_DOWN, _("Move the Selected Node Down"), sigc::mem_fun(*pActions, &CtActions::node_down)});
+    _actions.push_back(CtAction{tree_cat, "tree_node_left", "gtk-go-back", _("Node _Left"), KB_SHIFT+CtConst::STR_KEY_LEFT, _("Move the Selected Node Left"), sigc::mem_fun(*pActions, &CtActions::node_left)});
+    _actions.push_back(CtAction{tree_cat, "tree_node_right", "gtk-go-forward", _("Node _Right"), KB_SHIFT+CtConst::STR_KEY_RIGHT, _("Move the Selected Node Right"), sigc::mem_fun(*pActions, &CtActions::node_right)});
+    _actions.push_back(CtAction{tree_cat, "tree_node_new_father", "gtk-jump-to", _("Node Change _Parent"), KB_CONTROL+KB_SHIFT+CtConst::STR_KEY_RIGHT, _("Change the Selected Node's Parent"), sigc::mem_fun(*pActions, &CtActions::node_change_father)});
+    _actions.push_back(CtAction{tree_cat, "tree_all_sort_asc", "gtk-sort-ascending", _("Sort Tree _Ascending"), None, _("Sort the Tree Ascending"), sigc::mem_fun(*pActions, &CtActions::tree_sort_ascending)});
+    _actions.push_back(CtAction{tree_cat, "tree_all_sort_desc", "gtk-sort-descending", _("Sort Tree _Descending"), None, _("Sort the Tree Descending"), sigc::mem_fun(*pActions, &CtActions::tree_sort_descending)});
+    _actions.push_back(CtAction{tree_cat, "tree_sibl_sort_asc", "gtk-sort-ascending", _("Sort Siblings A_scending"), None, _("Sort all the Siblings of the Selected Node Ascending"), sigc::mem_fun(*pActions, &CtActions::node_siblings_sort_ascending)});
+    _actions.push_back(CtAction{tree_cat, "tree_sibl_sort_desc", "gtk-sort-descending", _("Sort Siblings D_escending"), None, _("Sort all the Siblings of the Selected Node Descending"), sigc::mem_fun(*pActions, &CtActions::node_siblings_sort_descending)});
     _actions.push_back(CtAction{tree_cat, "child_nodes_inherit_syntax", "gtk-execute", _("_Inherit Syntax"), None, _("Change the Selected Node's Children Syntax Highlighting to the Parent's Syntax Highlighting"), sigc::signal<void>() /* dad.node_inherit_syntax */});
     _actions.push_back(CtAction{tree_cat, "tree_node_del", "edit-delete", _("De_lete Node"), "Delete", _("Delete the Selected Node"), sigc::signal<void>() /* dad.node_delete */});
-    _actions.push_back(CtAction{tree_cat, "node_bookmark", "pin-add", _("Add to _Bookmarks"), KB_CONTROL+KB_SHIFT+"B", _("Add the Current Node to the Bookmarks List"), sigc::signal<void>() /* dad.bookmark_curr_node */});
-    _actions.push_back(CtAction{tree_cat, "node_unbookmark", "pin-remove", _("_Remove from Bookmarks"), KB_CONTROL+KB_ALT+"B", _("Remove the Current Node from the Bookmarks List"), sigc::signal<void>() /* dad.bookmark_curr_node_remove */});
-    _actions.push_back(CtAction{tree_cat, "handle_bookmarks", "gtk-edit", _("_Handle Bookmarks"), None, _("Handle the Bookmarks List"), sigc::signal<void>() /* dad.bookmarks_handle */});
+    _actions.push_back(CtAction{tree_cat, "node_bookmark", "pin-add", _("Add to _Bookmarks"), KB_CONTROL+KB_SHIFT+"B", _("Add the Current Node to the Bookmarks List"), sigc::mem_fun(*pActions, &CtActions::bookmark_curr_node)});
+    _actions.push_back(CtAction{tree_cat, "node_unbookmark", "pin-remove", _("_Remove from Bookmarks"), KB_CONTROL+KB_ALT+"B", _("Remove the Current Node from the Bookmarks List"), sigc::mem_fun(*pActions, &CtActions::bookmark_curr_node_remove)});
+    _actions.push_back(CtAction{tree_cat, "handle_bookmarks", "gtk-edit", _("_Handle Bookmarks"), None, _("Handle the Bookmarks List"), sigc::mem_fun(*pActions, &CtActions::bookmarks_handle)});
     _actions.push_back(CtAction{tree_cat, "go_node_prev", "gtk-go-back", _("Go _Back"), KB_ALT+CtConst::STR_KEY_LEFT, _("Go to the Previous Visited Node"), sigc::signal<void>() /* dad.go_back */});
     _actions.push_back(CtAction{tree_cat, "go_node_next", "gtk-go-forward", _("Go _Forward"), KB_ALT+CtConst::STR_KEY_RIGHT, _("Go to the Next Visited Node"), sigc::signal<void>() /* dad.go_forward */});
     const char* find_cat = _("Find/Replace");
-    _actions.push_back(CtAction{find_cat, "find_in_node", "find_sel", _("_Find in Node Content"), KB_CONTROL+"F", _("Find into the Selected Node Content"), sigc::signal<void>() /* dad.find_in_selected_node */});
-    _actions.push_back(CtAction{find_cat, "find_in_allnodes", "find_all", _("Find in _All Nodes Contents"), KB_CONTROL+KB_SHIFT+"F", _("Find into All the Tree Nodes Contents"), sigc::signal<void>() /* dad.find_in_all_nodes */});
-    _actions.push_back(CtAction{find_cat, "find_in_node_n_sub", "find_selnsub", _("Find in _Selected Node and Subnodes Contents"), KB_CONTROL+KB_ALT+"F", _("Find into the Selected Node and Subnodes Contents"), sigc::signal<void>() /* dad.find_in_sel_node_and_subnodes */});
-    _actions.push_back(CtAction{find_cat, "find_in_node_names", "find", _("Find in _Nodes Names and Tags"), KB_CONTROL+"T", _("Find in Nodes Names and Tags"), sigc::signal<void>() /* dad.find_a_node */});
-    _actions.push_back(CtAction{find_cat, "find_iter_fw", "find_again", _("Find _Again"), "F3", _("Iterate the Last Find Operation"), sigc::signal<void>() /* dad.find_again */});
-    _actions.push_back(CtAction{find_cat, "find_iter_bw", "find_back", _("Find _Back"), "F4", _("Iterate the Last Find Operation in Opposite Direction"), sigc::signal<void>() /* dad.find_back */});
-    _actions.push_back(CtAction{find_cat, "replace_in_node", "replace_sel", _("_Replace in Node Content"), KB_CONTROL+"H", _("Replace into the Selected Node Content"), sigc::signal<void>() /* dad.replace_in_selected_node */});
-    _actions.push_back(CtAction{find_cat, "replace_in_allnodes", "replace_all", _("Replace in _All Nodes Contents"), KB_CONTROL+KB_SHIFT+"H", _("Replace into All the Tree Nodes Contents"), sigc::signal<void>() /* dad.replace_in_all_nodes */});
-    _actions.push_back(CtAction{find_cat, "replace_in_node_n_sub", "replace_selnsub", _("Replace in _Selected Node and Subnodes Contents"), KB_CONTROL+KB_ALT+"H", _("Replace into the Selected Node and Subnodes Contents"), sigc::signal<void>() /* dad.replace_in_sel_node_and_subnodes */});
-    _actions.push_back(CtAction{find_cat, "replace_in_node_names", "find_replace", _("Replace in Nodes _Names"), KB_CONTROL+KB_SHIFT+"T", _("Replace in Nodes Names"), sigc::signal<void>() /* dad.replace_in_nodes_names */});
-    _actions.push_back(CtAction{find_cat, "replace_iter_fw", "replace_again", _("Replace _Again"), "F6", _("Iterate the Last Replace Operation"), sigc::signal<void>() /* dad.replace_again */});
-    _actions.push_back(CtAction{find_cat, "toggle_show_allmatches_dlg", "find", _("Show _All Matches Dialog"), KB_CONTROL+KB_SHIFT+"A", _("Show Search All Matches Dialog"), sigc::signal<void>() /* dad.find_allmatchesdialog_restore */});
+    _actions.push_back(CtAction{find_cat, "find_in_node", "find_sel", _("_Find in Node Content"), KB_CONTROL+"F", _("Find into the Selected Node Content"), sigc::mem_fun(*pActions, &CtActions::find_in_selected_node)});
+    _actions.push_back(CtAction{find_cat, "find_in_allnodes", "find_all", _("Find in _All Nodes Contents"), KB_CONTROL+KB_SHIFT+"F", _("Find into All the Tree Nodes Contents"), sigc::mem_fun(*pActions, &CtActions::find_in_all_nodes)});
+    _actions.push_back(CtAction{find_cat, "find_in_node_n_sub", "find_selnsub", _("Find in _Selected Node and Subnodes Contents"), KB_CONTROL+KB_ALT+"F", _("Find into the Selected Node and Subnodes Contents"), sigc::mem_fun(*pActions, &CtActions::find_in_sel_node_and_subnodes)});
+    _actions.push_back(CtAction{find_cat, "find_in_node_names", "find", _("Find in _Nodes Names and Tags"), KB_CONTROL+"T", _("Find in Nodes Names and Tags"), sigc::mem_fun(*pActions, &CtActions::find_a_node)});
+    _actions.push_back(CtAction{find_cat, "find_iter_fw", "find_again", _("Find _Again"), "F3", _("Iterate the Last Find Operation"), sigc::mem_fun(*pActions, &CtActions::find_again)});
+    _actions.push_back(CtAction{find_cat, "find_iter_bw", "find_back", _("Find _Back"), "F4", _("Iterate the Last Find Operation in Opposite Direction"), sigc::mem_fun(*pActions, &CtActions::find_back)});
+    _actions.push_back(CtAction{find_cat, "replace_in_node", "replace_sel", _("_Replace in Node Content"), KB_CONTROL+"H", _("Replace into the Selected Node Content"), sigc::mem_fun(*pActions, &CtActions::replace_in_selected_node)});
+    _actions.push_back(CtAction{find_cat, "replace_in_allnodes", "replace_all", _("Replace in _All Nodes Contents"), KB_CONTROL+KB_SHIFT+"H", _("Replace into All the Tree Nodes Contents"), sigc::mem_fun(*pActions, &CtActions::replace_in_all_nodes)});
+    _actions.push_back(CtAction{find_cat, "replace_in_node_n_sub", "replace_selnsub", _("Replace in _Selected Node and Subnodes Contents"), KB_CONTROL+KB_ALT+"H", _("Replace into the Selected Node and Subnodes Contents"), sigc::mem_fun(*pActions, &CtActions::replace_in_sel_node_and_subnodes)});
+    _actions.push_back(CtAction{find_cat, "replace_in_node_names", "find_replace", _("Replace in Nodes _Names"), KB_CONTROL+KB_SHIFT+"T", _("Replace in Nodes Names"), sigc::mem_fun(*pActions, &CtActions::replace_in_nodes_names)});
+    _actions.push_back(CtAction{find_cat, "replace_iter_fw", "replace_again", _("Replace _Again"), "F6", _("Iterate the Last Replace Operation"), sigc::mem_fun(*pActions, &CtActions::replace_again)});
+    _actions.push_back(CtAction{find_cat, "toggle_show_allmatches_dlg", "find", _("Show _All Matches Dialog"), KB_CONTROL+KB_SHIFT+"A", _("Show Search All Matches Dialog"), sigc::mem_fun(*pActions, &CtActions::find_allmatchesdialog_restore)});
     const char* view_cat = _("View");
-    _actions.push_back(CtAction{view_cat, "toggle_show_tree", "cherries", _("Show/Hide _Tree"), "F9", _("Toggle Show/Hide Tree"), sigc::signal<void>() /* dad.toggle_show_hide_tree */});
-    _actions.push_back(CtAction{view_cat, "toggle_show_toolbar", "toolbar", _("Show/Hide Tool_bar"), None, _("Toggle Show/Hide Toolbar"), sigc::signal<void>() /* dad.toggle_show_hide_toolbar */});
-    _actions.push_back(CtAction{view_cat, "toggle_show_node_name_head", "node_name_header", _("Show/Hide Node Name _Header"), None, _("Toggle Show/Hide Node Name Header"), sigc::signal<void>() /* dad.toggle_show_hide_node_name_header */});
-    _actions.push_back(CtAction{view_cat, "toggle_focus_tree_text", "gtk-jump-to", _("Toggle _Focus Tree/Text"), KB_CONTROL+"Tab", _("Toggle Focus Between Tree and Text"), sigc::signal<void>() /* dad.toggle_tree_text */});
-    _actions.push_back(CtAction{view_cat, "nodes_all_expand", "gtk-zoom-in", _("E_xpand All Nodes"), KB_CONTROL+KB_SHIFT+"E", _("Expand All the Tree Nodes"), sigc::signal<void>() /* dad.nodes_expand_all */});
-    _actions.push_back(CtAction{view_cat, "nodes_all_collapse", "gtk-zoom-out", _("_Collapse All Nodes"), KB_CONTROL+KB_SHIFT+"L", _("Collapse All the Tree Nodes"), sigc::signal<void>() /* dad.nodes_collapse_all */});
-    _actions.push_back(CtAction{view_cat, "toolbar_icons_size_p", "gtk-add", _("_Increase Toolbar Icons Size"), None, _("Increase the Size of the Toolbar Icons"), sigc::signal<void>() /* dad.toolbar_icons_size_increase */});
-    _actions.push_back(CtAction{view_cat, "toolbar_icons_size_m", "gtk-remove", _("_Decrease Toolbar Icons Size"), None, _("Decrease the Size of the Toolbar Icons"), sigc::signal<void>() /* dad.toolbar_icons_size_decrease */});
-    _actions.push_back(CtAction{view_cat, "toggle_fullscreen", "gtk-fullscreen", _("_Full Screen On/Off"), "F11", _("Toggle Full Screen On/Off"), sigc::signal<void>() /* dad.fullscreen_toggle */});
+    _actions.push_back(CtAction{view_cat, "toggle_show_tree", "cherries", _("Show/Hide _Tree"), "F9", _("Toggle Show/Hide Tree"), sigc::mem_fun(*pActions, &CtActions::toggle_show_hide_tree)});
+    _actions.push_back(CtAction{view_cat, "toggle_show_toolbar", "toolbar", _("Show/Hide Tool_bar"), None, _("Toggle Show/Hide Toolbar"), sigc::mem_fun(*pActions, &CtActions::toggle_show_hide_toolbar)});
+    _actions.push_back(CtAction{view_cat, "toggle_show_node_name_head", "node_name_header", _("Show/Hide Node Name _Header"), None, _("Toggle Show/Hide Node Name Header"), sigc::mem_fun(*pActions, &CtActions::toggle_show_hide_node_name_header)});
+    _actions.push_back(CtAction{view_cat, "toggle_focus_tree_text", "gtk-jump-to", _("Toggle _Focus Tree/Text"), KB_CONTROL+"Tab", _("Toggle Focus Between Tree and Text"), sigc::mem_fun(*pActions, &CtActions::toggle_tree_text)});
+    _actions.push_back(CtAction{view_cat, "nodes_all_expand", "gtk-zoom-in", _("E_xpand All Nodes"), KB_CONTROL+KB_SHIFT+"E", _("Expand All the Tree Nodes"), sigc::mem_fun(*pActions, &CtActions::nodes_expand_all)});
+    _actions.push_back(CtAction{view_cat, "nodes_all_collapse", "gtk-zoom-out", _("_Collapse All Nodes"), KB_CONTROL+KB_SHIFT+"L", _("Collapse All the Tree Nodes"), sigc::mem_fun(*pActions, &CtActions::nodes_collapse_all)});
+    _actions.push_back(CtAction{view_cat, "toolbar_icons_size_p", "gtk-add", _("_Increase Toolbar Icons Size"), None, _("Increase the Size of the Toolbar Icons"), sigc::mem_fun(*pActions, &CtActions::toolbar_icons_size_increase)});
+    _actions.push_back(CtAction{view_cat, "toolbar_icons_size_m", "gtk-remove", _("_Decrease Toolbar Icons Size"), None, _("Decrease the Size of the Toolbar Icons"), sigc::mem_fun(*pActions, &CtActions::toolbar_icons_size_decrease)});
+    _actions.push_back(CtAction{view_cat, "toggle_fullscreen", "gtk-fullscreen", _("_Full Screen On/Off"), "F11", _("Toggle Full Screen On/Off"), sigc::mem_fun(*pActions, &CtActions::fullscreen_toggle)});
     const char* export_cat = _("Export");
     _actions.push_back(CtAction{export_cat, "export_pdf", "to_pdf", _("Export To _PDF"), None, _("Export To PDF"), sigc::signal<void>() /* dad.export_to_pdf */});
     _actions.push_back(CtAction{export_cat, "export_html", "to_html", _("Export To _HTML"), None, _("Export To HTML"), sigc::signal<void>() /* dad.export_to_html */});
@@ -241,7 +241,7 @@ void CtMenu::init_actions(CtApp *pApp)
     }
 }
 
-CtAction const* CtMenu::find_action(const std::string& id)
+CtAction* CtMenu::find_action(const std::string& id)
 {
     for (CtAction& action : _actions)
     {
@@ -256,6 +256,16 @@ CtAction const* CtMenu::find_action(const std::string& id)
 GtkAccelGroup* CtMenu::default_accel_group()
 {
     return _pAccelGroup;
+}
+
+Gtk::MenuItem* CtMenu::find_menu_item(Gtk::MenuBar* menuBar, std::string name)
+{
+    for (Gtk::Widget* child: menuBar->get_children())
+        if (auto menuItem = dynamic_cast<Gtk::MenuItem*>(child)){
+            if (menuItem->get_name() == name)
+                return menuItem;
+        }
+    return nullptr;
 }
 
 Gtk::Toolbar* CtMenu::build_toolbar()
@@ -355,6 +365,21 @@ Gtk::Menu* CtMenu::build_popup_menu_table_codebox()
     return Glib::wrap(GTK_MENU(pMenu));
 }
 
+Gtk::Menu* CtMenu::build_bookmarks_menu(std::list<std::tuple<gint64, std::string>>& bookmarks, sigc::slot<void, gint64>& bookmark_action)
+{
+    Gtk::Menu* pMenu = Gtk::manage(new Gtk::Menu());
+    add_menu_item(GTK_WIDGET(pMenu->gobj()), find_action("handle_bookmarks"));
+    add_separator(GTK_WIDGET(pMenu->gobj()));
+    for (const auto& bookmark: bookmarks)
+    {
+        const gint64& node_id = std::get<0>(bookmark);
+        const std::string& node_name = std::get<1>(bookmark);
+        Gtk::MenuItem* menuItem = add_menu_item(GTK_WIDGET(pMenu->gobj()), node_name.c_str(), "pin", nullptr, node_name.c_str(), nullptr);
+        menuItem->signal_activate().connect(sigc::bind(bookmark_action, node_id));
+    }
+    return pMenu;
+}
+
 GtkWidget* CtMenu::walk_menu_xml(GtkWidget* pMenu, const char* document, const char* xpath)
 {
     xmlpp::DomParser parser;
@@ -383,20 +408,20 @@ void CtMenu::walk_menu_xml(GtkWidget* pMenu, xmlpp::Node* pNode)
             if (xmlpp::Attribute* pAttrName = get_attribute(pNodeIter, "_name")) // menu name which need to be translated
             {
                 xmlpp::Attribute* pAttrImage = get_attribute(pNodeIter, "image");
-                GtkWidget* pSubmenu = add_submenu(pMenu, _(pAttrName->get_value().c_str()), pAttrImage->get_value().c_str());
+                GtkWidget* pSubmenu = add_submenu(pMenu, pAttrName->get_value().c_str(), _(pAttrName->get_value().c_str()), pAttrImage->get_value().c_str());
                 walk_menu_xml(pSubmenu, pNodeIter->get_first_child());
             }
             else // otherwise it is an action id
             {
                 CtAction const* pAction = find_action(get_attribute(pNodeIter, "action")->get_value());
-                GtkWidget* pSubmenu = add_submenu(pMenu, pAction->name.c_str(), pAction->image.c_str());
+                GtkWidget* pSubmenu = add_submenu(pMenu, pAction->id.c_str(), pAction->name.c_str(), pAction->image.c_str());
                 walk_menu_xml(pSubmenu, pNodeIter->get_first_child());
             }
         }
         else if (pNodeIter->get_name() == "menuitem")
         {
-            CtAction const* pAction = find_action(get_attribute(pNodeIter, "action")->get_value());
-            add_menu_item(pMenu, pAction->name.c_str(), pAction->image.c_str(), pAction->get_shortcut().c_str(), pAction->desc.c_str(), (gpointer)pAction);
+            CtAction* pAction = find_action(get_attribute(pNodeIter, "action")->get_value());
+            add_menu_item(pMenu, pAction);
         }
         else if (pNodeIter->get_name() == "separator")
         {
@@ -405,9 +430,10 @@ void CtMenu::walk_menu_xml(GtkWidget* pMenu, xmlpp::Node* pNode)
     }
 }
 
-GtkWidget* CtMenu::add_submenu(GtkWidget* pMenu, const char* name, const char* image)
+GtkWidget* CtMenu::add_submenu(GtkWidget* pMenu, const char* id, const char* name, const char* image)
 {
-    Gtk::Widget* pMenuItem = Gtk::manage(new Gtk::MenuItem());
+    Gtk::MenuItem* pMenuItem = Gtk::manage(new Gtk::MenuItem());
+    pMenuItem->set_name(id);
     GtkWidget* pLabel = gtk_accel_label_new(name);
     gtk_label_set_markup_with_mnemonic(GTK_LABEL(pLabel), name);
 #if GTK_CHECK_VERSION(3,16,0)
@@ -419,14 +445,24 @@ GtkWidget* CtMenu::add_submenu(GtkWidget* pMenu, const char* name, const char* i
 
     GtkWidget* pSubmenu = gtk_menu_new();
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(pMenuItem->gobj()), GTK_WIDGET(pSubmenu));
-    gtk_menu_shell_append(GTK_MENU_SHELL(pMenu), pMenuItem->gobj());
+    gtk_menu_shell_append(GTK_MENU_SHELL(pMenu), GTK_WIDGET(pMenuItem->gobj()));
     return pSubmenu;
 }
 
-// based on inkscape/src/ui/interface.cpp
-GtkWidget* CtMenu::add_menu_item(GtkWidget* pMenu, const char* name, const char* image, const char* shortcut, const char* desc, gpointer action_data)
+Gtk::MenuItem* CtMenu::add_menu_item(GtkWidget* pMenu, CtAction* pAction)
 {
-    Gtk::Widget* pMenuItem = Gtk::manage(new Gtk::MenuItem());
+    return add_menu_item(pMenu, pAction->name.c_str(), pAction->image.c_str(), pAction->get_shortcut().c_str(),
+                  pAction->desc.c_str(), (gpointer)pAction, &pAction->signal_set_sensitive, &pAction->signal_set_visible);
+
+}
+
+// based on inkscape/src/ui/interface.cpp
+Gtk::MenuItem* CtMenu::add_menu_item(GtkWidget* pMenu, const char* name, const char* image, const char* shortcut,
+                                 const char* desc, gpointer action_data,
+                                 sigc::signal<void, bool>* signal_set_sensitive /* = nullptr */,
+                                 sigc::signal<void, bool>* signal_set_visible /* = nullptr */)
+{
+    Gtk::MenuItem* pMenuItem = Gtk::manage(new Gtk::MenuItem());
 
     if (desc && strlen(desc))
     {
@@ -447,24 +483,35 @@ GtkWidget* CtMenu::add_menu_item(GtkWidget* pMenu, const char* name, const char*
         guint key;
         GdkModifierType mod;
         gtk_accelerator_parse(shortcut, &key, &mod);
-        gtk_widget_add_accelerator(pMenuItem->gobj(),
+        gtk_widget_add_accelerator(GTK_WIDGET(pMenuItem->gobj()),
                         "activate",
                         default_accel_group(),
                         key,
                         mod,
                         GTK_ACCEL_VISIBLE);
     }
-    gtk_accel_label_set_accel_widget(GTK_ACCEL_LABEL(pLabel), pMenuItem->gobj());
+    gtk_accel_label_set_accel_widget(GTK_ACCEL_LABEL(pLabel), GTK_WIDGET(pMenuItem->gobj()));
 
     add_menu_item_image_or_label(pMenuItem, image, pLabel);
 
-    gtk_widget_set_events(pMenuItem->gobj(), GDK_KEY_PRESS_MASK);
+    if (signal_set_sensitive)
+        signal_set_sensitive->connect(
+            sigc::bind<0>(
+                sigc::ptr_fun(&gtk_widget_set_sensitive),
+                GTK_WIDGET(pMenuItem->gobj())));
+    if (signal_set_visible)
+        signal_set_visible->connect(
+            sigc::bind<0>(
+                sigc::ptr_fun(&gtk_widget_set_visible),
+                GTK_WIDGET(pMenuItem->gobj())));
+
+    gtk_widget_set_events(GTK_WIDGET(pMenuItem->gobj()), GDK_KEY_PRESS_MASK);
     g_signal_connect(G_OBJECT(pMenuItem->gobj()), "activate", G_CALLBACK(on_menu_activate), action_data);
 
     pMenuItem->show_all();
-    gtk_menu_shell_append(GTK_MENU_SHELL(GTK_MENU(pMenu)), pMenuItem->gobj());
+    gtk_menu_shell_append(GTK_MENU_SHELL(GTK_MENU(pMenu)), GTK_WIDGET(pMenuItem->gobj()));
 
-    return pMenuItem->gobj();
+    return pMenuItem;
 }
 
 void CtMenu::add_menu_item_image_or_label(Gtk::Widget* pMenuItem, const char* image, GtkWidget* pLabel)
@@ -498,8 +545,7 @@ GtkWidget* CtMenu::add_separator(GtkWidget* pMenu)
 
 std::string CtMenu::get_toolbar_ui_str()
 {
-    std::vector<std::string> vecToolbarElements;
-    CtStrUtil::gstringSplit2string(CtApp::P_ctCfg->toolbarUiList.c_str(), vecToolbarElements, ",");
+    std::vector<std::string> vecToolbarElements = str::split(CtApp::P_ctCfg->toolbarUiList, ",");
     std::string toolbarUIStr;
     for (const std::string& element: vecToolbarElements)
     {

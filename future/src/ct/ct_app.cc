@@ -24,6 +24,7 @@
 #include "ct_pref_dlg.h"
 
 CtConfig* CtApp::P_ctCfg{nullptr};
+CtActions* CtApp::P_ctActions{nullptr};
 Glib::RefPtr<Gtk::IconTheme> CtApp::R_icontheme;
 CtTmp* CtApp::P_ctTmp{nullptr};
 Glib::RefPtr<Gtk::TextTagTable> CtApp::R_textTagTable;
@@ -39,6 +40,10 @@ CtApp::CtApp() : Gtk::Application("com.giuspen.cherrytree", Gio::APPLICATION_HAN
     {
         P_ctCfg = new CtConfig();
         //std::cout << P_ctCfg->specialChars.size() << "\t" << P_ctCfg->specialChars << std::endl;
+    }
+    if (nullptr == P_ctActions)
+    {
+        P_ctActions = new CtActions();
     }
     if (!R_icontheme)
     {
@@ -65,8 +70,9 @@ CtApp::CtApp() : Gtk::Application("com.giuspen.cherrytree", Gio::APPLICATION_HAN
     {
         R_cssProvider = Gtk::CssProvider::create();
     }
+
     _pCtMenu = new CtMenu();
-    _pCtMenu->init_actions(this);
+    _pCtMenu->init_actions(this, P_ctActions);
 }
 
 CtApp::~CtApp()
@@ -74,6 +80,9 @@ CtApp::~CtApp()
     //std::cout << "~CtApp()" << std::endl;
     delete P_ctCfg;
     P_ctCfg = nullptr;
+
+    delete P_ctActions;
+    P_ctActions = nullptr;
 
     delete P_ctTmp;
     P_ctTmp = nullptr;
@@ -109,11 +118,20 @@ void CtApp::_iconthemeInit()
 CtMainWin* CtApp::create_appwindow()
 {
     auto pMainWin = new CtMainWin(_pCtMenu);
+    CtApp::P_ctActions->init(pMainWin, &pMainWin->get_tree_store());
 
     add_window(*pMainWin);
 
     pMainWin->signal_hide().connect(sigc::bind<Gtk::Window*>(sigc::mem_fun(*this, &CtApp::on_hide_window), pMainWin));
     return pMainWin;
+}
+
+CtMainWin* CtApp::get_main_win()
+{
+    auto windows_list = get_windows();
+    if (windows_list.size() > 0)
+        return dynamic_cast<CtMainWin*>(windows_list[0]);
+    return create_appwindow();
 }
 
 void CtApp::on_activate()
@@ -149,17 +167,7 @@ void CtApp::on_hide_window(Gtk::Window* pWindow)
 void CtApp::on_open(const Gio::Application::type_vec_files& files, const Glib::ustring& hint)
 {
     // app run with arguments
-    CtMainWin* pAppWindow{nullptr};
-    auto windows_list = get_windows();
-    if (windows_list.size() > 0)
-    {
-        pAppWindow = dynamic_cast<CtMainWin*>(windows_list[0]);
-    }
-
-    if (!pAppWindow)
-    {
-        pAppWindow = create_appwindow();
-    }
+    CtMainWin* pAppWindow = get_main_win();
 
     for (const Glib::RefPtr<Gio::File>& r_file : files)
     {
@@ -184,14 +192,9 @@ void CtApp::quit_application()
     quit();
 }
 
-void CtApp::add_node()
-{
-    std::cout << "CtApp::add_node() is called" << std::endl;
-}
-
 void CtApp::dialog_preferences()
 {
-    CtPrefDlg prefDlg(*get_windows()[0], _pCtMenu);
+    CtPrefDlg prefDlg(get_main_win(), _pCtMenu);
     prefDlg.show();
     prefDlg.run();
     prefDlg.hide();

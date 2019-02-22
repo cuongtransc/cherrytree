@@ -2,7 +2,7 @@
 #
 #       main.py
 #
-#       Copyright 2009-2018 Giuseppe Penone <giuspen@gmail.com>
+#       Copyright 2009-2019 Giuseppe Penone <giuspen@gmail.com>
 #
 #       This program is free software; you can redistribute it and/or modify
 #       it under the terms of the GNU General Public License as published by
@@ -251,7 +251,7 @@ def main(args):
                 si = subprocess.STARTUPINFO()
                 si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
                 sys.stderr = os.devnull
-                subprocess.check_output(["taskkill", "/f", "/im", "dbus-daemon.exe"], startupinfo=si)
+                subprocess.check_output(["TASKKILL", "/F", "/IM", "dbus-daemon.exe", "/T"], startupinfo=si)
     else:
         print "dbus fail, maybe a firewall problem, centralized instances disabled"
         lang_str = initializations()

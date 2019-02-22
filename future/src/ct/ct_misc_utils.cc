@@ -25,6 +25,8 @@
 #include <assert.h>
 #include "ct_misc_utils.h"
 #include "ct_app.h"
+#include <ctime>
+#include <regex>
 
 CtDocType CtMiscUtil::getDocType(std::string fileName)
 {
@@ -228,6 +230,94 @@ const Glib::ustring CtMiscUtil::getTextTagNameExistOrCreate(Glib::ustring proper
     return tagName;
 }
 
+void CtMiscUtil::widget_set_colors(Gtk::Widget& widget, const std::string& fg, const std::string& bg,
+                       bool syntax_highl, const std::string& gdk_col_fg)
+{
+    if (syntax_highl) return;
+    //widget.override_background_color(Gdk::RGBA(bg), Gtk::StateFlags::STATE_FLAG_NORMAL);
+    widget.override_color(Gdk::RGBA(fg), Gtk::StateFlags::STATE_FLAG_NORMAL);
+    Glib::RefPtr<Gtk::StyleContext> style = widget.get_style_context();
+    // gtk.STATE_NORMAL, gtk.STATE_ACTIVE, gtk.STATE_PRELIGHT, gtk.STATE_SELECTED, gtk.STATE_INSENSITIVE
+    widget.override_color(gdk_col_fg.empty()? style->get_color(Gtk::StateFlags::STATE_FLAG_SELECTED) : Gdk::RGBA(gdk_col_fg), Gtk::StateFlags::STATE_FLAG_SELECTED);
+    widget.override_color(gdk_col_fg.empty()? style->get_color(Gtk::StateFlags::STATE_FLAG_SELECTED) : Gdk::RGBA(gdk_col_fg), Gtk::StateFlags::STATE_FLAG_ACTIVE);
+    widget.override_background_color(style->get_background_color(Gtk::StateFlags::STATE_FLAG_SELECTED), Gtk::StateFlags::STATE_FLAG_ACTIVE);
+}
+
+bool CtMiscUtil::node_siblings_sort_iteration(Glib::RefPtr<Gtk::TreeStore> model, const Gtk::TreeNodeChildren& children,
+                                              std::function<bool(Gtk::TreeIter&, Gtk::TreeIter&)> need_swap)
+{
+    if (children.empty()) return false;
+    auto next_iter = [](Gtk::TreeIter iter) { return ++iter; };
+    auto sort_iteration = [&need_swap, &model, &next_iter](Gtk::TreeIter curr_sibling) -> bool {
+        bool swap_executed = false;
+        Gtk::TreeIter next_sibling = next_iter(curr_sibling);
+        while (next_sibling) {
+            if (need_swap(curr_sibling, next_sibling)) {
+                model->iter_swap(curr_sibling, next_sibling);
+                swap_executed = true;
+            } else {
+                curr_sibling = next_sibling;
+            }
+            next_sibling = next_iter(curr_sibling);
+        }
+        return swap_executed;
+    };
+
+    bool swap_executed = false;
+    while (sort_iteration(children.begin()))
+        swap_executed = true;
+    return swap_executed;
+}
+
+//"""Get the Node Hierarchical Name"""
+std::string CtMiscUtil::get_node_hierarchical_name(CtTreeIter tree_iter, const char* separator/*="--"*/,
+                                                   bool for_filename/*=true*/, bool root_to_leaf/*=true*/, const char* trailer/*=""*/)
+{
+    std::string hierarchical_name = str::trim(tree_iter.get_node_name());// todo: exports.clean_text_to_utf8(dad.treestore[tree_iter][1]).strip()
+    CtTreeIter father_iter = tree_iter.parent();
+    while (father_iter) {
+        std::string father_name = str::trim(father_iter.get_node_name());// todo: exports.clean_text_to_utf8(dad.treestore[father_iter][1]).strip()
+        if (root_to_leaf)
+            hierarchical_name = father_name + separator + hierarchical_name;
+        else
+            hierarchical_name = hierarchical_name + separator + father_name;
+        father_iter = father_iter.parent();
+    }
+    if (trailer)
+        hierarchical_name += trailer;
+    if (for_filename) {
+        hierarchical_name = clean_from_chars_not_for_filename(hierarchical_name);
+        if (hierarchical_name.size() > CtConst::MAX_FILE_NAME_LEN)
+            hierarchical_name = hierarchical_name.substr(hierarchical_name.size() - CtConst::MAX_FILE_NAME_LEN);
+    }
+    return hierarchical_name;
+}
+
+std::string CtMiscUtil::clean_from_chars_not_for_filename(std::string filename)
+{
+    filename = str::replace(filename, CtConst::CHAR_SLASH, CtConst::CHAR_MINUS);
+    filename = str::replace(filename, CtConst::CHAR_BSLASH, CtConst::CHAR_MINUS);
+    for (auto& str: {CtConst::CHAR_STAR, CtConst::CHAR_QUESTION, CtConst::CHAR_COLON, CtConst::CHAR_LESSER,
+         CtConst::CHAR_GREATER, CtConst::CHAR_PIPE, CtConst::CHAR_DQUOTE, CtConst::CHAR_NEWLINE, CtConst::CHAR_CR}) {
+        filename = str::replace(filename, str, "");
+    }
+    filename = str::trim(filename);
+    filename = str::replace(filename, CtConst::CHAR_SPACE, CtConst::CHAR_USCORE);
+    return filename;
+}
+
+Gtk::BuiltinIconSize CtMiscUtil::getIconSize(int size)
+{
+    switch (size) {
+        case 1:  return Gtk::BuiltinIconSize::ICON_SIZE_MENU;
+        case 2:  return Gtk::BuiltinIconSize::ICON_SIZE_SMALL_TOOLBAR;
+        case 3:  return Gtk::BuiltinIconSize::ICON_SIZE_LARGE_TOOLBAR;
+        case 4:  return Gtk::BuiltinIconSize::ICON_SIZE_DND;
+        case 5:  return Gtk::BuiltinIconSize::ICON_SIZE_DIALOG;
+        default: return Gtk::BuiltinIconSize::ICON_SIZE_MENU;
+    }
+}
+
 
 bool CtStrUtil::isStrTrue(const Glib::ustring& inStr)
 {
@@ -293,15 +383,13 @@ bool CtStrUtil::isPgcharInPgcharSet(const gchar* pGcharNeedle, const std::set<co
 
 std::string CtFontUtil::getFontFamily(const std::string& fontStr)
 {
-    std::vector<std::string> splFont;
-    CtStrUtil::gstringSplit2string(fontStr.c_str(), splFont);
+    std::vector<std::string> splFont = str::split(fontStr, " ");
     return splFont.size() > 0 ? splFont.at(0) : "";
 }
 
 std::string CtFontUtil::getFontSizeStr(const std::string& fontStr)
 {
-    std::vector<std::string> splFont;
-    CtStrUtil::gstringSplit2string(fontStr.c_str(), splFont);
+    std::vector<std::string> splFont = str::split(fontStr, " ");
     return splFont.size() > 1 ? splFont.at(1) : "";
 }
 
@@ -382,9 +470,83 @@ char* CtRgbUtil::setRgb24StrFromStrAny(const char* rgbStrAny, char* rgb24StrOut)
     return rgb24StrOut;
 }
 
+std::string CtRgbUtil::getRgb24StrFromStrAny(const std::string& rgbStrAny)
+{
+    char rgb24Str[8];
+    setRgb24StrFromStrAny(rgbStrAny.c_str(), rgb24Str);
+    return rgb24Str;
+}
+
+
 guint32 CtRgbUtil::getRgb24IntFromStrAny(const char* rgbStrAny)
 {
     char rgb24Str[8];
     setRgb24StrFromStrAny(rgbStrAny, rgb24Str);
     return getRgb24IntFromRgb24Str(rgb24Str);
+}
+
+std::string CtRgbUtil::rgb_to_string(Gdk::RGBA color)
+{
+    char rgbStrOut[16];
+    sprintf(rgbStrOut, "#%.2x%.2x%.2x", color.get_red_u(), color.get_green_u(), color.get_blue_u());
+    return rgbStrOut;
+}
+
+std::string CtRgbUtil::rgb_any_to_24(Gdk::RGBA color)
+{
+    char rgb24StrOut[16];
+    CtRgbUtil::setRgb24StrFromStrAny(CtRgbUtil::rgb_to_string(color).c_str(), rgb24StrOut);
+    return rgb24StrOut;
+}
+
+bool str::endswith(const std::string& str, const std::string& ending)
+{
+    if (str.length() >= ending.length())
+        return (0 == str.compare(str.length() - ending.length(), ending.length(), ending));
+    return false;
+}
+
+std::string str::xml_escape(const std::string& text)
+{
+    std::string buffer;
+    buffer.reserve(text.size());
+    for(size_t pos = 0; pos != text.size(); ++pos) {
+        switch(text[pos]) {
+            case '&':  buffer.append("&amp;");       break;
+            case '\"': buffer.append("&quot;");      break;
+            case '\'': buffer.append("&apos;");      break;
+            case '<':  buffer.append("&lt;");        break;
+            case '>':  buffer.append("&gt;");        break;
+            default:   buffer.append(&text[pos], 1); break;
+        }
+    }
+    return buffer;
+}
+
+
+std::string str::re_escape(const std::string& text)
+{
+    return Glib::Regex::escape_string(text);
+}
+
+std::string str::time_format(const std::string& format, const std::time_t& time)
+{
+    std::tm* localtime = std::localtime(&time);
+    char buffer[100];
+    if (strftime(buffer, sizeof(buffer), format.c_str(), localtime))
+        return buffer;
+    else if (strftime(buffer, sizeof(buffer), CtConst::TIMESTAMP_FORMAT_DEFAULT, localtime))
+        return buffer;
+    return "";
+}
+
+int str::symb_pos_to_byte_pos(const Glib::ustring& text, int symb_pos)
+{
+    gchar* pointer = g_utf8_offset_to_pointer(text.data(), symb_pos);
+    return (int)(pointer - text.data());
+}
+
+int str::byte_pos_to_symb_pos(const Glib::ustring& text, int byte_pos)
+{
+    return g_utf8_pointer_to_offset(text.data(), text.data() + byte_pos);
 }
