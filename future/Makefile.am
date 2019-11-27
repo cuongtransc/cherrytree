@@ -25,9 +25,8 @@ AM_CPPFLAGS = ${CHERRYTREE_CFLAGS} \
 	-D_LIB_FOR_CHERRYTREE \
 	-D_UNITTEST_DATA_DIR=\"${top_srcdir}/tests/data\" \
 	-Wno-deprecated \
-	-Wno-cpp
-
-AM_CXXFLAGS = -std=c++17
+	-Wno-cpp \
+	-std=c++17
 
 bin_PROGRAMS = cherrytree
 
@@ -57,10 +56,20 @@ COMMON_SOURCES = \
 	src/ct/icons.gresource.cc \
 	src/ct/ct_menu.cc \
 	src/ct/ct_pref_dlg.cc \
+	src/ct/ct_actions_edit.cc \
+	src/ct/ct_actions_file.cc \
 	src/ct/ct_actions_find.cc \
+	src/ct/ct_actions_format.cc \
+	src/ct/ct_actions_others.cc \
 	src/ct/ct_actions_tree.cc \
 	src/ct/ct_actions_view.cc \
-	src/ct/ct_dialogs.cc
+	src/ct/ct_dialogs.cc \
+	src/ct/ct_list.cc \
+	src/ct/ct_clipboard.cc \
+	src/ct/ct_export2txt.cc \
+	src/ct/ct_export2html.cc \
+	src/ct/ct_imports.cc \
+	src/ct/ct_widgets.cc
 
 cherrytree_SOURCES = \
 	src/ct/ct_main.cc \

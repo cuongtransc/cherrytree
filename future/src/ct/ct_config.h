@@ -24,10 +24,7 @@
 #include <unordered_map>
 #include <glibmm.h>
 #include "ct_const.h"
-
-enum class CtRestoreExpColl : int {FROM_STR=0, ALL_EXP=1, ALL_COLL=2};
-
-enum class CtTableColMode : int {RENAME=0, ADD=1, DELETE=2, RIGHT=3, LEFT=4};
+#include "ct_enums.h"
 
 struct CtRecentDocRestore
 {
@@ -94,6 +91,7 @@ public:
     int                                         embfileMaxSize{10};
     bool                                        lineWrapping{true};
     bool                                        autoSmartQuotes{true};
+    bool                                        enableSymbolAutoreplace{true};
     int                                         wrappingIndent{-14};
     bool                                        autoIndent{true};
     bool                                        rtShowWhiteSpaces{false};
@@ -108,6 +106,8 @@ public:
     Glib::ustring                               charsListbul{CtConst::CHARS_LISTBUL_DEFAULT};
     Glib::ustring                               charsToc{CtConst::CHARS_TOC_DEFAULT};
     Glib::ustring                               charsTodo{CtConst::CHARS_TODO_DEFAULT};
+    Glib::ustring                               chars_smart_dquote{CtConst::CHARS_SMART_DQUOTE_DEFAULT};
+    Glib::ustring                               chars_smart_squote{CtConst::CHARS_SMART_SQUOTE_DEFAULT};
     std::string                                 latestTagProp;
     std::string                                 latestTagVal;
     Glib::ustring                               timestampFormat{CtConst::TIMESTAMP_FORMAT_DEFAULT};
@@ -116,10 +116,19 @@ public:
     bool                                        weblinkCustomOn{false};
     bool                                        filelinkCustomOn{false};
     bool                                        folderlinkCustomOn{false};
+#if defined(_WIN32) || defined(_WIN64)
+    std::string                                 weblinkCustomAct{"explorer %s &"};
+    std::string                                 filelinkCustomAct{"explorer %s &"};
+    std::string                                 folderlinkCustomAct{"explorer %s &"};
+#elif __APPLE__
+    std::string                                 weblinkCustomAct{"open %s &"};
+    std::string                                 filelinkCustomAct{"open %s &"};
+    std::string                                 folderlinkCustomAct{"open %s &"};
+#else
     std::string                                 weblinkCustomAct{"firefox %s &"};
     std::string                                 filelinkCustomAct{"xdg-open %s &"};
     std::string                                 folderlinkCustomAct{"xdg-open %s &"};
-
+#endif
     // [codebox]
     double                                      codeboxWidth{500};
     double                                      codeboxHeight{100};
@@ -189,7 +198,7 @@ protected:
     template<class String> bool _populateStringFromKeyfile(const gchar* key, String* pTarget)
     {
         bool gotIt{false};
-        if (_pKeyFile->has_key(_currentGroup, key))
+        if (_pKeyFile->has_group(_currentGroup) && _pKeyFile->has_key(_currentGroup, key))
         {
             try
             {

@@ -22,6 +22,7 @@
 #include <glib/gstdio.h>
 #include "ct_app.h"
 #include "ct_pref_dlg.h"
+#include "config.h"
 
 CtConfig* CtApp::P_ctCfg{nullptr};
 CtActions* CtApp::P_ctActions{nullptr};
@@ -147,7 +148,7 @@ void CtApp::on_activate()
         Glib::RefPtr<Gio::File> r_file = Gio::File::create_for_path(filePath);
         if (r_file->query_exists())
         {
-            if (!pAppWindow->readNodesFromGioFile(r_file, false/*isImport*/))
+            if (!pAppWindow->read_nodes_from_gio_file(r_file, false/*isImport*/))
             {
                 _printHelpMessage();
             }
@@ -164,7 +165,7 @@ void CtApp::on_hide_window(Gtk::Window* pWindow)
     delete pWindow;
 }
 
-void CtApp::on_open(const Gio::Application::type_vec_files& files, const Glib::ustring& hint)
+void CtApp::on_open(const Gio::Application::type_vec_files& files, const Glib::ustring& /*hint*/)
 {
     // app run with arguments
     CtMainWin* pAppWindow = get_main_win();
@@ -173,7 +174,7 @@ void CtApp::on_open(const Gio::Application::type_vec_files& files, const Glib::u
     {
         if (r_file->query_exists())
         {
-            if (!pAppWindow->readNodesFromGioFile(r_file, false/*isImport*/))
+            if (!pAppWindow->read_nodes_from_gio_file(r_file, false/*isImport*/))
             {
                 _printHelpMessage();
             }
@@ -231,7 +232,7 @@ const gchar* CtTmp::getHiddenDirPath(const std::string& visiblePath)
 {
     if (!_mapHiddenDirs.count(visiblePath))
     {
-        _mapHiddenDirs[visiblePath] = g_dir_make_tmp(NULL, NULL);
+        _mapHiddenDirs[visiblePath] = g_dir_make_tmp(nullptr, nullptr);
     }
     return _mapHiddenDirs.at(visiblePath);
 }
@@ -249,10 +250,6 @@ const gchar* CtTmp::getHiddenFilePath(const std::string& visiblePath)
         else if (Glib::str_has_suffix(basename, ".ctz"))
         {
             basename.replace(basename.end()-1, basename.end(), "d");
-        }
-        else
-        {
-            std::cerr << "!! unexpected basename " << basename << std::endl;
         }
         _mapHiddenFiles[visiblePath] = g_build_filename(tempDir, basename.c_str(), NULL);
     }

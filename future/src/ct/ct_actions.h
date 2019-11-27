@@ -20,22 +20,82 @@
  */
 
 #pragma once
-#include "ct_main_win.h"
 
+#include "ct_dialogs.h"
+#include "ct_codebox.h"
+#include "ct_image.h"
+#include "ct_table.h"
+#include "ct_main_win.h"
+#include "ct_enums.h"
+#include <optional>
 
 class CtMainWin;
+
 class CtActions
 {
 public:
-    void init(CtMainWin* mainWin, CtTreeStore* treeStore) { _ctMainWin = mainWin; _ctTreestore = treeStore; _find_init(); }
+    void init(CtMainWin* pCtMainWin, CtTreeStore* pCtTreeStore)
+    {
+        _pCtMainWin = pCtMainWin;
+        _pCtTreestore = pCtTreeStore;
+        _find_init();
+    }
+
+public:
+    CtCodebox*      curr_codebox_anchor{nullptr};
+    CtTable*        curr_table_anchor{nullptr};
+    CtImageAnchor*  curr_anchor_anchor{nullptr};
+    CtImagePng*     curr_image_anchor{nullptr};
+    CtImageEmbFile* curr_file_anchor{nullptr};
 
 private:
-    CtMainWin*   _ctMainWin;
-    CtTreeStore* _ctTreestore;
+    CtDialogs::CtLinkEntry _link_entry;
 
 private:
+    size_t                          _next_opened_emb_file_id{1};
+    std::map<Glib::ustring, time_t> _embfiles_opened;
+    sigc::connection                _embfiles_timeout_connection;
+
+private:
+    CtMainWin*   _pCtMainWin;
+    CtTreeStore* _pCtTreestore;
+
+public:
+    CtMainWin*   getCtMainWin() { return _pCtMainWin; }
+
+private:
+    Glib::RefPtr<Gtk::TextBuffer> _curr_buffer() { return _pCtMainWin->get_text_view().get_buffer(); }
+    bool          _node_sel_and_rich_text();
+
+public: // todo: fix naming
     bool          _is_there_selected_node_or_error();
     bool          _is_tree_not_empty_or_error();
+    bool          _is_curr_node_not_read_only_or_error();
+    bool          _is_curr_node_not_syntax_highlighting_or_error(bool plain_text_ok = false);
+
+public:
+    void object_set_selection(CtAnchoredWidget* widget);
+
+private:
+    // helpers for file actions
+    void _file_save(const bool run_vacuum=false);
+    bool _file_write(const std::string& filepath,
+                     const std::string& password,
+                     const bool firstWrite,
+                     const bool run_vacuum=false);
+    bool _file_write_low_level(const std::string& filepath,
+                               const std::string& password,
+                               const bool firstWrite,
+                               const bool run_vacuum=false,
+                               const CtExporting exporting=CtExporting::No,
+                               const std::pair<int,int>& offset_range=std::make_pair(-1,-1));
+    bool _backups_handling(const std::string& filepath);
+
+public:
+    // file actions
+    void file_save();
+    void file_vacuum();
+    void file_save_as();
 
 private:
     // helpers for tree actions
@@ -84,7 +144,8 @@ private:
                                       Gtk::TextIter start_iter, bool forward, bool all_matches);
     std::string         _get_line_content(Glib::RefPtr<Gtk::TextBuffer> text_buffer, Gtk::TextIter text_iter);
     std::string         _get_first_line_content(Glib::RefPtr<Gtk::TextBuffer> text_buffer);
-    std::array<int, 2>  _check_pattern_in_object_between(Glib::RefPtr<Gtk::TextBuffer> text_buffer, Glib::RefPtr<Glib::Regex> pattern,
+    Glib::ustring       _check_pattern_in_object(Glib::RefPtr<Glib::Regex> pattern, CtAnchoredWidget* obj);
+    std::pair<int, int> _check_pattern_in_object_between(Glib::RefPtr<Gtk::TextBuffer> text_buffer, Glib::RefPtr<Glib::Regex> pattern,
                                                          int start_offset, int end_offset, bool forward, std::string& obj_content);
     int                 _get_num_objs_before_offset(Glib::RefPtr<Gtk::TextBuffer> text_buffer, int max_offset);
     void                _iterated_find_dialog();
@@ -119,4 +180,134 @@ public:
     void toolbar_icons_size_increase();
     void toolbar_icons_size_decrease();
     void fullscreen_toggle();
+
+public:
+    // helper for format actions
+    void _apply_tag(const Glib::ustring& tag_property, Glib::ustring property_value = "",
+                    std::optional<Gtk::TextIter> iter_sel_start = std::nullopt,
+                    std::optional<Gtk::TextIter> iter_sel_end = std::nullopt,
+                    Glib::RefPtr<Gtk::TextBuffer> text_buffer = Glib::RefPtr<Gtk::TextBuffer>());
+public:
+    Glib::ustring apply_tag_exist_or_create(const Glib::ustring& tag_property, Glib::ustring property_value);
+
+private:
+    struct text_view_n_buffer_codebox_proof {
+        CtTextView*                     text_view;
+        Glib::RefPtr<Gtk::TextBuffer>   text_buffer;
+        std::string                     syntax_highl;
+        bool                            from_codebox;
+    };
+    text_view_n_buffer_codebox_proof _get_text_view_n_buffer_codebox_proof();
+    CtCodebox* _codebox_in_use();
+
+    bool _links_entries_pre_dialog(const Glib::ustring& curr_link, CtDialogs::CtLinkEntry& link_entry);
+    Glib::ustring _links_entries_post_dialog(CtDialogs::CtLinkEntry& link_entry);
+    Glib::ustring _link_check_around_cursor();
+
+public:
+    // format actions
+    void apply_tag_latest();
+    void remove_text_formatting();
+    void apply_tag_foreground();
+    void apply_tag_background();
+    void apply_tag_bold();
+    void apply_tag_italic();
+    void apply_tag_underline();
+    void apply_tag_strikethrough();
+    void apply_tag_h1();
+    void apply_tag_h2();
+    void apply_tag_h3();
+    void apply_tag_small();
+    void apply_tag_superscript();
+    void apply_tag_subscript();
+    void apply_tag_monospace();
+    void list_bulleted_handler();
+    void list_numbered_handler();
+    void list_todo_handler();
+    void apply_tag_justify_left();
+    void apply_tag_justify_center();
+    void apply_tag_justify_right();
+    void apply_tag_justify_fill();
+
+private:
+    // helper for edit actions
+    void          _image_edit_dialog(Glib::RefPtr<Gdk::Pixbuf> rPixbuf,
+                                     Gtk::TextIter insertIter,
+                                     Gtk::TextIter* pIterBound);
+    Glib::ustring _get_iter_alignment(Gtk::TextIter text_iter);
+    void          _text_selection_change_case(gchar change_type);
+
+public:
+    void          image_insert_png(Gtk::TextIter iter_insert, Glib::RefPtr<Gdk::Pixbuf> pixbuf,
+                                   const Glib::ustring& link, const Glib::ustring& image_justification);
+    void          image_insert_anchor(Gtk::TextIter iter_insert, const Glib::ustring& name, const Glib::ustring& image_justification);
+
+public:
+    // edit actions
+    void insert_spec_char_action(gunichar ch);
+    void requested_step_back();
+    void requested_step_ahead();
+    void image_handle();
+    void table_handle();
+    void codebox_handle();
+    void embfile_insert();
+    void apply_tag_link();
+    void anchor_handle();
+    void toc_insert();
+    void timestamp_insert();
+    void horizontal_rule_insert();
+    void text_selection_lower_case();
+    void text_selection_upper_case();
+    void text_selection_toggle_case();
+    void toggle_ena_dis_spellcheck();
+    void cut_as_plain_text();
+    void copy_as_plain_text();
+    void paste_as_plain_text();
+    void text_row_cut();
+    void text_row_copy();
+    void text_row_delete();
+    void text_row_selection_duplicate();
+    void text_row_up();
+    void text_row_down();
+    void strip_trailing_spaces();
+
+private:
+    // helper for others actions
+    void _anchor_edit_dialog(CtImageAnchor* anchor, Gtk::TextIter insert_iter, Gtk::TextIter* iter_bound);
+    bool _on_embfiles_sentinel_timeout();
+
+public:
+    // others actions
+    void anchor_cut();
+    void anchor_copy();
+    void anchor_delete();
+    void anchor_edit();
+    void embfile_cut();
+    void embfile_copy();
+    void embfile_delete();
+    void embfile_save();
+    void embfile_open();
+    void image_save();
+    void image_edit();
+    void image_cut();
+    void image_copy();
+    void image_delete();
+    void image_link_edit();
+    void image_link_dismiss();
+    void toggle_show_hide_main_window();
+
+    void link_clicked(const Glib::ustring& tag_property_value, bool from_wheel);
+
+    void codebox_cut();
+    void codebox_copy();
+    void codebox_delete();
+    void codebox_delete_keeping_text();
+    void codebox_change_properties();
+    void exec_code();
+    void codebox_load_from_file();
+    void codebox_save_to_file();
+    void codebox_increase_width();
+    void codebox_decrease_width();
+    void codebox_increase_height();
+    void codebox_decrease_height();
 };

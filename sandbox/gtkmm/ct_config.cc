@@ -1,18 +1,18 @@
 /*
  * ct_config.cc
- * 
+ *
  * Copyright 2017-2018 Giuseppe Penone <giuspen@gmail.com>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
@@ -95,7 +95,7 @@ const gchar  *TREE_TEXT_LIGHT_BG = COLOR_24_GRAY;
 const int     NODE_ICON_CODE_ID = 38;
 const int     NODE_ICON_BULLET_ID = 25;
 const int     NODE_ICON_NO_ICON_ID = 26;
-const gchar   TOOLBAR_VEC_DEFAULT[] = 
+const gchar   TOOLBAR_VEC_DEFAULT[] =
     "tree_add_node,tree_add_subnode,sep,go_node_prev,go_node_next,"
     "sep,*,ct_save,export_pdf,sep,"
     "find_in_allnodes,sep,handle_bull_list,handle_num_list,handle_todo_list,"
@@ -210,6 +210,7 @@ public:
     int                                         m_embfile_max_size;
     bool                                        m_line_wrapping;
     bool                                        m_auto_smart_quotes;
+    bool                                        m_enable_symbol_autoreplace;
     int                                         m_wrapping_indent;
     bool                                        m_auto_indent;
     bool                                        m_rt_show_white_spaces;
@@ -371,6 +372,7 @@ void CTConfig::_populate_with_defaults()
     m_embfile_max_size = 10;
     m_line_wrapping = true;
     m_auto_smart_quotes = true;
+    m_enable_symbol_autoreplace = true;
     m_wrapping_indent = -14;
     m_auto_indent = true;
     m_rt_show_white_spaces = false;
@@ -421,7 +423,7 @@ void CTConfig::_populate_with_defaults()
     m_tt_def_fg = TREE_TEXT_LIGHT_FG;
     m_tt_def_bg = TREE_TEXT_LIGHT_BG;
     m_monospace_bg = DEFAULT_MONOSPACE_BG;
-    m_color_palette = 
+    m_color_palette =
         "#000000:#ffffff:#7f7f7f:#ff0000:#a020f0:"
         "#0000ff:#add8e6:#00ff00:#ffff00:#ffa500:"
         "#e6e6fa:#a52a2a:#8b6914:#1e90ff:#ffc0cb:"
@@ -636,6 +638,7 @@ void CTConfig::_populate_from_keyfile()
     _populate_int_from_keyfile("embfile_max_size", &m_embfile_max_size);
     _populate_bool_from_keyfile("line_wrapping", &m_line_wrapping);
     _populate_bool_from_keyfile("auto_smart_quotes", &m_auto_smart_quotes);
+    _populate_bool_from_keyfile("enable_symbol_autoreplace", &m_enable_symbol_autoreplace);
     _populate_int_from_keyfile("wrapping_indent", &m_wrapping_indent);
     _populate_bool_from_keyfile("auto_indent", &m_auto_indent);
     _populate_bool_from_keyfile("rt_show_white_spaces", &m_rt_show_white_spaces);

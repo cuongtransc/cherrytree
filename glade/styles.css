@@ -11,16 +11,18 @@ Colours:
 - blue: #00ADD0
 
 */
+
 /*******************************************************************************
  * GENERAL
  ******************************************************************************/
 /*<link href='http://fonts.googleapis.com/css?family=Open+Sans:400,300,300italic,400italic,600,700' rel='stylesheet' type='text/css'>*/
-@import url(http://fonts.googleapis.com/css?family=Open+Sans:400,300,300italic,400italic,600,700);
+@import url(https://fonts.googleapis.com/css?family=Open+Sans:400,300,300italic,400italic,600,700);
 
 body {
     font-size: 13px;
     font-family: "Open Sans", sans-serif !important;
     padding: 20x;
+    white-space: pre-wrap;
 }
 
 div.main {
@@ -85,9 +87,7 @@ div.tree ol ol ol ol, div.tree ol ol ol ol ol, div.tree ol ol ol ol ol ol {
     list-style-type: disc;
 }
 
-div.tree a.show, div.tree a.hide {
-    display: none;
-}
+div.tree a.show, div.tree a.hide { display: none; }
 
 /*******************************************************************************
  * NODE PAGES
@@ -113,6 +113,7 @@ td {
 
 div.main h1 {
     font-weight: bold;
+    display: inline;
 }
 
 div.main h2 {
@@ -121,6 +122,7 @@ div.main h2 {
     font-weight: bold;
     font-size: 150%;
     color: #666666;
+    display: inline;
 }
 
 div.main h3 {
@@ -128,6 +130,7 @@ div.main h3 {
     font-weight: bold;
     font-size: 125%;
     color: #666666;
+    display: inline;
 }
 
 /* LINKS */
@@ -148,7 +151,7 @@ span.code-node {
 }
 
 div.codebox, div.main code, div.main pre {
-    font-family: "Source Code Pro", "Courier New", Courier, monospace;
+    font-family: "Courier New", Courier, monospace;
     font-weight: normal;
     font-size: 13px;
     background-color: #EEEEEE;

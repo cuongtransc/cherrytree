@@ -218,8 +218,8 @@ class SpellChecker(object):
         have associated a new GtkTextBuffer with the GtkTextView call this
         method.
         """
-        # self._misspelled = gtk.TextTag('{}-misspelled'.format(self._prefix))
-        # self._misspelled.set_property('underline', 4)
+        #self._misspelled = gtk.TextTag('{}-misspelled'.format(self._prefix))
+        #self._misspelled.set_property('underline', 4)
         self._buffer = self._view.get_buffer()
         self._buffer.connect('insert-text', self._before_text_insert)
         self._buffer.connect_after('insert-text', self._after_text_insert)
@@ -378,7 +378,7 @@ class SpellChecker(object):
             return
         if end.inside_word(): end.forward_word_end()
         if not start.starts_word() and (start.inside_word() or
-                                            start.ends_word()):
+                                        start.ends_word()):
             start.backward_word_start()
         self._buffer.remove_tag(self._misspelled, start, end)
         cursor = self._buffer.get_iter_at_mark(self._buffer.get_insert())
@@ -566,7 +566,7 @@ class SpellChecker(object):
             line_end = end.copy()
             line_end.forward_to_line_end()
             line = self._buffer.get_text(line_start, line_end,
-                                         False).decode('utf-8')
+                                             False).decode('utf-8')
             for match in self._regexes[SpellChecker.FILTER_LINE].finditer(line):
                 if match.start() <= start.get_line_offset() <= match.end():
                     start = self._buffer.get_iter_at_line_offset(
@@ -578,7 +578,7 @@ class SpellChecker(object):
         if len(self._filters[SpellChecker.FILTER_TEXT]):
             text_start, text_end = self._buffer.get_bounds()
             text = self._buffer.get_text(text_start, text_end,
-                                         False).decode('utf-8')
+                                             False).decode('utf-8')
             for match in self._regexes[SpellChecker.FILTER_TEXT].finditer(text):
                 if match.start() <= start.get_offset() <= match.end():
                     start = self._buffer.get_iter_at_offset(match.start())

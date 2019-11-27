@@ -30,6 +30,11 @@ const int      CtConst::NODE_ICON_CODE_ID           {38};
 const int      CtConst::NODE_ICON_BULLET_ID         {25};
 const int      CtConst::NODE_ICON_NO_ICON_ID        {26};
 const int      CtConst::NODE_ICON_SIZE              {16};
+const int      CtConst::MAX_TOOLTIP_LINK_CHARS      {150};
+const gchar    CtConst::CTDOC_XML_NOENC[]      {".ctd"};
+const gchar    CtConst::CTDOC_XML_ENC[]        {".ctz"};
+const gchar    CtConst::CTDOC_SQLITE_NOENC[]   {".ctb"};
+const gchar    CtConst::CTDOC_SQLITE_ENC[]     {".ctx"};
 const gchar    CtConst::LINK_TYPE_WEBS[]       {"webs"};
 const gchar    CtConst::LINK_TYPE_FILE[]       {"file"};
 const gchar    CtConst::LINK_TYPE_FOLD[]       {"fold"};
@@ -55,11 +60,22 @@ const gchar    CtConst::STYLE_SCHEME_LIGHT[]   {"classic"};
 const gchar    CtConst::STYLE_SCHEME_DARK[]    {"cobalt"};
 const gchar    CtConst::STYLE_SCHEME_GRAY[]    {"oblivion"};
 const gchar    CtConst::TIMESTAMP_FORMAT_DEFAULT[] {"%Y/%m/%d - %H:%M"};
-const gchar    CtConst::SPECIAL_CHARS_DEFAULT[]    {"“”„‘’•◇▪▸☐☑☒★…‰€©®™°↓↑→←↔↵⇓⇑⇒⇐⇔»«▼▲►◄≤≥≠≈±¹²³½¼⅛×÷∞ø∑√∫ΔδΠπΣΦΩωαβγεηλμ☺☻☼♥♣♦✔♀♂♪♫✝"};
-const gchar    CtConst::SELWORD_CHARS_DEFAULT[]    {".-@"};
-const gchar    CtConst::CHARS_LISTBUL_DEFAULT[]    {"•◇▪-→⇒"};
-const gchar    CtConst::CHARS_TOC_DEFAULT[]    {"▸•◇▪"};
-const gchar    CtConst::CHARS_TODO_DEFAULT[]   {"☐☑☒"};
+const Glib::ustring CtConst::SPECIAL_CHARS_DEFAULT     {"“”„‘’•◇▪▸☐☑☒★…‰€©®™°↓↑→←↔↵⇓⇑⇒⇐⇔»«▼▲►◄≤≥≠≈±¹²³½¼⅛×÷∞ø∑σ√∫ΔδΠπΣΦΩωαβγεηλμ☺☻☼♥♣♦✔♀♂♪♫✝"};
+const Glib::ustring CtConst::SPECIAL_CHAR_ARROW_RIGHT   {"→"};
+const Glib::ustring CtConst::SPECIAL_CHAR_ARROW_RIGHT2  {"⇒"};
+const Glib::ustring CtConst::SPECIAL_CHAR_ARROW_LEFT    {"←"};
+const Glib::ustring CtConst::SPECIAL_CHAR_ARROW_LEFT2   {"⇐"};
+const Glib::ustring CtConst::SPECIAL_CHAR_ARROW_DOUBLE  {"↔"};
+const Glib::ustring CtConst::SPECIAL_CHAR_ARROW_DOUBLE2 {"⇔"};
+const Glib::ustring CtConst::SPECIAL_CHAR_COPYRIGHT     {"©"};
+const Glib::ustring CtConst::SPECIAL_CHAR_UNREGISTERED_TRADEMARK {"™"};
+const Glib::ustring CtConst::SPECIAL_CHAR_REGISTERED_TRADEMARK   {"®"};
+const Glib::ustring CtConst::SELWORD_CHARS_DEFAULT {".-@"};
+const Glib::ustring CtConst::CHARS_LISTBUL_DEFAULT {"•◇▪-→⇒"};
+const Glib::ustring CtConst::CHARS_TOC_DEFAULT     {"▸•◇▪"};
+const Glib::ustring CtConst::CHARS_TODO_DEFAULT    {"☐☑☒"};
+const Glib::ustring CtConst::CHARS_SMART_DQUOTE_DEFAULT    {"“”"};
+const Glib::ustring CtConst::CHARS_SMART_SQUOTE_DEFAULT    {"‘’"};
 const gchar    CtConst::COLOR_48_LINK_WEBS[]   {"#00008989ffff"};
 const gchar    CtConst::COLOR_48_LINK_NODE[]   {"#071c838e071c"};
 const gchar    CtConst::COLOR_48_LINK_FILE[]   {"#8b8b69691414"};
@@ -82,6 +98,7 @@ const gchar*   CtConst::TREE_TEXT_DARK_BG      {COLOR_24_BLUEBG};
 const gchar*   CtConst::TREE_TEXT_LIGHT_FG     {COLOR_24_LBLACK};
 const gchar*   CtConst::TREE_TEXT_LIGHT_BG     {COLOR_24_GRAY};
 
+const gchar    CtConst::GTKSPELLCHECK_TAG_NAME[] {"gtkspellchecker-misspelled"};
 const gchar    CtConst::TAG_WEIGHT[]           {"weight"};
 const gchar    CtConst::TAG_FOREGROUND[]       {"foreground"};
 const gchar    CtConst::TAG_BACKGROUND[]       {"background"};
@@ -122,41 +139,42 @@ const gchar    CtConst::STR_STOCK_CT_IMP[]          {"import_in_cherrytree"};
 
 const int      CtConst::MAX_FILE_NAME_LEN           {142};
 
-const gchar    CtConst::CHAR_SPACE[]                {" "};
-const gchar    CtConst::CHAR_NEWLINE[]              {"\n"};
-const gchar    CtConst::CHAR_NEWPAGE[]              {"\x0c"};
-const gchar    CtConst::CHAR_CR[]                   {"\r"};
-const gchar    CtConst::CHAR_TAB[]                  {"\t"};
-const gchar    CtConst::CHARS_LISTNUM[]             {".)->"};
-const gchar    CtConst::CHAR_TILDE[]                {"~"};
-const gchar    CtConst::CHAR_MINUS[]                {"-"};
-const gchar    CtConst::CHAR_DQUOTE[]               {"\""};
-const gchar    CtConst::CHAR_SMART_DQUOTE_0[]       {"“"};
-const gchar    CtConst::CHAR_SMART_DQUOTE_1[]       {"”"};
-const gchar    CtConst::CHAR_SQUOTE[]               {"'"};
-const gchar    CtConst::CHAR_SMART_SQUOTE_0[]       {"‘"};
-const gchar    CtConst::CHAR_SMART_SQUOTE_1[]       {"’"};
-const gchar    CtConst::CHAR_GRAVE[]                {"`"};
-const gchar    CtConst::CHAR_SLASH[]                {"/"};
-const gchar    CtConst::CHAR_BSLASH[]               {"\\"};
-const gchar    CtConst::CHAR_SQ_BR_OPEN[]           {"["};
-const gchar    CtConst::CHAR_SQ_BR_CLOSE[]          {"]"};
-const gchar    CtConst::CHAR_PARENTH_OPEN[]         {"("};
-const gchar    CtConst::CHAR_PARENTH_CLOSE[]        {")"};
-const gchar    CtConst::CHAR_LESSER[]               {"<"};
-const gchar    CtConst::CHAR_GREATER[]              {">"};
-const gchar    CtConst::CHAR_STAR[]                 {"*"};
-const gchar    CtConst::CHAR_QUESTION[]             {"?"};
-const gchar    CtConst::CHAR_COMMA[]                {","};
-const gchar    CtConst::CHAR_COLON[]                {":"};
-const gchar    CtConst::CHAR_SEMICOLON[]            {";"};
-const gchar    CtConst::CHAR_USCORE[]               {"_"};
-const gchar    CtConst::CHAR_EQUAL[]                {"="};
-const gchar    CtConst::CHAR_BR_OPEN[]              {"{"};
-const gchar    CtConst::CHAR_BR_CLOSE[]             {"}"};
-const gchar    CtConst::CHAR_CARET[]                {"^"};
-const gchar    CtConst::CHAR_PIPE[]                 {"|"};
-const gchar    CtConst::CHAR_AMPERSAND[]            {"&"};
+const Glib::ustring CtConst::CHAR_SPACE             {" "};
+const Glib::ustring CtConst::CHAR_NEWLINE           {"\n"};
+const Glib::ustring CtConst::CHAR_NEWPAGE           {"\x0c"};
+const Glib::ustring CtConst::CHAR_CR                {"\r"};
+const Glib::ustring CtConst::CHAR_TAB               {"\t"};
+const Glib::ustring CtConst::CHARS_LISTNUM          {".)->"};
+const int           CtConst::NUM_CHARS_LISTNUM      {4};
+const Glib::ustring CtConst::CHAR_TILDE             {"~"};
+const Glib::ustring CtConst::CHAR_MINUS             {"-"};
+const Glib::ustring CtConst::CHAR_DQUOTE            {"\""};
+const Glib::ustring CtConst::CHAR_SQUOTE            {"'"};
+const Glib::ustring CtConst::CHAR_GRAVE             {"`"};
+const Glib::ustring CtConst::CHAR_SLASH             {"/"};
+const Glib::ustring CtConst::CHAR_BSLASH            {"\\"};
+const Glib::ustring CtConst::CHAR_SQ_BR_OPEN        {"["};
+const Glib::ustring CtConst::CHAR_SQ_BR_CLOSE       {"]"};
+const Glib::ustring CtConst::CHAR_PARENTH_OPEN      {"("};
+const Glib::ustring CtConst::CHAR_PARENTH_CLOSE     {")"};
+const Glib::ustring CtConst::CHAR_LESSER            {"<"};
+const Glib::ustring CtConst::CHAR_GREATER           {">"};
+const Glib::ustring CtConst::CHAR_STAR              {"*"};
+const Glib::ustring CtConst::CHAR_QUESTION          {"?"};
+const Glib::ustring CtConst::CHAR_COMMA             {","};
+const Glib::ustring CtConst::CHAR_COLON             {":"};
+const Glib::ustring CtConst::CHAR_SEMICOLON         {";"};
+const Glib::ustring CtConst::CHAR_USCORE            {"_"};
+const Glib::ustring CtConst::CHAR_EQUAL             {"="};
+const Glib::ustring CtConst::CHAR_BR_OPEN           {"{"};
+const Glib::ustring CtConst::CHAR_BR_CLOSE          {"}"};
+const Glib::ustring CtConst::CHAR_CARET             {"^"};
+const Glib::ustring CtConst::CHAR_PIPE              {"|"};
+const Glib::ustring CtConst::CHAR_AMPERSAND         {"&"};
+
+const std::vector<Glib::ustring> CtConst::WEB_LINK_STARTERS {
+    "http://", "https://", "www.", "ftp://"
+};
 
 const std::set<const gchar*> CtConst::TEXT_SYNTAXES {
     RICH_TEXT_ID,
@@ -195,7 +213,7 @@ const gchar* CtConst::AVAILABLE_LANGS[20] {
     "ja", "lt", "nl", "pl", "pt_BR", "ru", "sl", "tr", "uk", "zh_CN"
 };
 
-const std::unordered_map<int, Glib::ustring> CtConst::NODES_STOCKS {
+const std::unordered_map<int, std::string> CtConst::NODES_STOCKS {
     { 1, "circle-green"},
     { 2, "circle-yellow"},
     { 3, "circle-red"},
@@ -246,7 +264,7 @@ const std::unordered_map<int, Glib::ustring> CtConst::NODES_STOCKS {
     {48, "cpp"},
 };
 
-const std::unordered_map<int, Glib::ustring> CtConst::NODES_ICONS {
+const std::unordered_map<int, std::string> CtConst::NODES_ICONS {
     { 0, CHERRY_RED},
     { 1, CHERRY_BLUE},
     { 2, CHERRY_ORANGE},
@@ -261,7 +279,7 @@ const std::unordered_map<int, Glib::ustring> CtConst::NODES_ICONS {
     {-1, CHERRY_GRAY},
 };
 
-const std::map<Glib::ustring, Glib::ustring> CtConst::CODE_ICONS {
+const std::map<std::string, std::string> CtConst::CODE_ICONS {
     {"python", "python"},
     {"python3", "python"},
     {"perl", "perl"},
@@ -276,10 +294,10 @@ const std::map<Glib::ustring, Glib::ustring> CtConst::CODE_ICONS {
 };
 
 
-const Glib::ustring CtConst::CODE_EXEC_TMP_SRC  {"<tmp_src_path>"};
-const Glib::ustring CtConst::CODE_EXEC_TMP_BIN  {"<tmp_bin_path>"};
-const Glib::ustring CtConst::CODE_EXEC_COMMAND  {"<command>"};
-const std::map<Glib::ustring, Glib::ustring> CtConst::CODE_EXEC_TYPE_CMD_DEFAULT {
+const std::string CtConst::CODE_EXEC_TMP_SRC  {"<tmp_src_path>"};
+const std::string CtConst::CODE_EXEC_TMP_BIN  {"<tmp_bin_path>"};
+const std::string CtConst::CODE_EXEC_COMMAND  {"<command>"};
+const std::map<std::string, std::string> CtConst::CODE_EXEC_TYPE_CMD_DEFAULT {
     {"c",        "gcc -o "+CtConst::CODE_EXEC_TMP_BIN+" "+CtConst::CODE_EXEC_TMP_SRC+" && "+CtConst::CODE_EXEC_TMP_BIN},
     {"cpp",      "g++ -o "+CtConst::CODE_EXEC_TMP_BIN+" "+CtConst::CODE_EXEC_TMP_SRC+" && "+CtConst::CODE_EXEC_TMP_BIN},
     {"dosbatch", "call "+CtConst::CODE_EXEC_TMP_SRC},
@@ -288,12 +306,12 @@ const std::map<Glib::ustring, Glib::ustring> CtConst::CODE_EXEC_TYPE_CMD_DEFAULT
     {"python3",  "python3 "+CtConst::CODE_EXEC_TMP_SRC},
     {"sh",       "sh "+CtConst::CODE_EXEC_TMP_SRC}
 };
-const std::map<Glib::ustring, Glib::ustring> CtConst::CODE_EXEC_TERM_RUN_DEFAULT {
+const std::map<std::string, std::string> CtConst::CODE_EXEC_TERM_RUN_DEFAULT {
     {"linux", "xterm -hold -geometry 180x45 -e \""+CtConst::CODE_EXEC_COMMAND+"\""},
     {"win",   "start cmd /k \""+CtConst::CODE_EXEC_COMMAND+"\""}
 };
 
-Glib::ustring CtConst::getStockIdForCodeType(Glib::ustring code_type)
+std::string CtConst::getStockIdForCodeType(std::string code_type)
 {
     return (1 == CODE_ICONS.count(code_type) ? CODE_ICONS.at(code_type) : NODES_STOCKS.at(NODE_ICON_CODE_ID));
 }

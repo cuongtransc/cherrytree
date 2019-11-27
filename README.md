@@ -1,37 +1,4 @@
 # CherryTree
-
-Origin Website: http://www.giuspen.com/cherrytree/
-
-# Install CherryTree Dev
-
-## Install Dependencies
-
-```sh
-sudo apt-get install -y python-dev python-pip
-
-sudo apt-get install -y p7zip-full python-appindicator python-dbus python-enchant python-gtk2 python-gtksourceview2
-```
-
-## Clone Source Code and Install Libraries
-
-```sh
-git clone https://github.com/cuongtransc/cherrytree
-
-cd cherrytree
-
-sudo pip install -r requirements.txt
-
-# Install
-sudo python setup.py install
-
-```
-
-## Run CherryTree
-
-```sh
-python cherrytree
-```
-
 A hierarchical note taking application, featuring rich text and syntax highlighting, storing data in a single XML or SQLite file.
 The project home page is [giuspen.com/cherrytree](https://www.giuspen.com/cherrytree/).
 
@@ -47,6 +14,8 @@ The current (python) version requires:
 * python-chardet
 
 Then, after cloning, run in the top folder `./cherrytree` or `python2 cherrytree`.
+
+NOTE: The dictionaries for the spellcheck have packages names like hunspell-it, hunspell-fr, ...
 
 ### Installation
 Look at [giuspen.com/cherrytree/#downl](https://www.giuspen.com/cherrytree/#downl) for available installers.

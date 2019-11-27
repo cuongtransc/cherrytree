@@ -22,6 +22,7 @@
 #pragma once
 
 #include "ct_codebox.h"
+#include "ct_widgets.h"
 
 class CtTableCell : public CtTextCell, public Gtk::Bin
 {
@@ -38,15 +39,26 @@ class CtTable : public CtAnchoredWidget
 {
 public:
     CtTable(const CtTableMatrix& tableMatrix,
-            const int& colMin,
-            const int& colMax,
-            const int& charOffset,
+            const int colMin,
+            const int colMax,
+            const bool headFront,
+            const int charOffset,
             const std::string& justification);
     virtual ~CtTable();
+
+    void apply_width_height(const int /*parentTextWidth*/) override {}
+    void to_xml(xmlpp::Element* p_node_parent, const int offset_adjustment) override;
+    bool to_sqlite(sqlite3* pDb, const gint64 node_id, const int offset_adjustment) override;
+    void set_modified_false() override;
+    CtAnchWidgType get_type() override { return CtAnchWidgType::Table; }
+
+    const CtTableMatrix& get_table_matrix() { return _tableMatrix; }
 
 protected:
     CtTableMatrix _tableMatrix;
     int _colMin;
     int _colMax;
     Gtk::Grid _grid;
+
+    void _populate_xml_rows_cells(xmlpp::Element* p_table_node);
 };

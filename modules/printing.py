@@ -70,7 +70,7 @@ class PrintHandler:
         try:
             res = print_operation.run(print_operation_action, parent)
         except gobject.GError, ex:
-            support.dialog_error("Error printing file:\n%s (exception catched)" % str(ex), parent)
+            support.dialog_error("Error printing file:\n%s (exception caught)" % str(ex), parent)
         else:
             if res == gtk.PRINT_OPERATION_RESULT_ERROR:
                 support.dialog_error("Error printing file (bad res)", parent)
@@ -502,9 +502,9 @@ class PrintHandler:
             if last_close < last_open:
                 non_closed_span = original_splitted_pango[i][last_open:]
                 end_non_closed_span_idx = non_closed_span.find(">")
-                non_closed_span = non_closed_span[:end_non_closed_span_idx + 1]
+                non_closed_span = non_closed_span[:end_non_closed_span_idx+1]
                 original_splitted_pango[i] += "</span>"
-                original_splitted_pango[i + 1] = non_closed_span + original_splitted_pango[i + 1]
+                original_splitted_pango[i+1] = non_closed_span + original_splitted_pango[i+1]
         splitted_pango = []
         codebox_dict_jolly = copy.deepcopy(codebox_dict)
         partial_pango_vec = []

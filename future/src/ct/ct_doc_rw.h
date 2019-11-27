@@ -26,59 +26,153 @@
 #include <gtkmm.h>
 #include "ct_treestore.h"
 #include "ct_table.h"
+#include "ct_enums.h"
 
 class CtDocRead
 {
 public:
-    CtDocRead() {};
-    virtual ~CtDocRead() {};
-    virtual void treeWalk(const Gtk::TreeIter* pParentIter=nullptr)=0;
+    virtual bool read_populate_tree(const Gtk::TreeIter* pParentIter=nullptr) = 0;
+
     sigc::signal<bool, gint64> signalAddBookmark;
     sigc::signal<Gtk::TreeIter, CtNodeData*, const Gtk::TreeIter*> signalAppendNode;
 };
-
-enum class CtXmlNodeType { None, RichText, EncodedPng, Table, CodeBox };
 
 class CtXmlRead : public CtDocRead, public xmlpp::DomParser
 {
 public:
     CtXmlRead(const char* filepath, const char* textContent);
     virtual ~CtXmlRead();
-    virtual void treeWalk(const Gtk::TreeIter* pParentIter=nullptr);
-    Glib::RefPtr<Gsv::Buffer> getTextBuffer(const std::string& syntax,
-                                            std::list<CtAnchoredWidget*>& anchoredWidgets,
-                                            xmlpp::Element* pNodeElement=nullptr);
-    void populateTableMatrix(CtTableMatrix& tableMatrix, xmlpp::Element* pNodeElement=nullptr);
+    bool read_populate_tree(const Gtk::TreeIter* pParentIter=nullptr) override;
+    Glib::RefPtr<Gsv::Buffer> get_text_buffer(const std::string& syntax,
+                                              std::list<CtAnchoredWidget*>& anchoredWidgets,
+                                              xmlpp::Element* pNodeElement=nullptr);
+
 private:
-    void _xmlTreeWalkIter(xmlpp::Element* pNodeElement, const Gtk::TreeIter* pParentIter);
-    Gtk::TreeIter _xmlNodeProcess(xmlpp::Element* pNodeElement, const Gtk::TreeIter* pParentIter);
-    CtXmlNodeType _xmlNodeGetTypeFromName(const Glib::ustring& xmlNodeName);
-    void _getTextBufferIter(Glib::RefPtr<Gsv::Buffer>& rTextBuffer,
-                            std::list<CtAnchoredWidget*>& anchoredWidgets,
-                            xmlpp::Node *pNodeParent);
+    void _read_populate_tree_iter(xmlpp::Element* pNodeElement, const Gtk::TreeIter* pParentIter);
+    Gtk::TreeIter _read_node(xmlpp::Element* pNodeElement, const Gtk::TreeIter* pParentIter);
+
+private:
+    static CtXmlNodeType _node_get_type_from_name(const Glib::ustring& xmlNodeName);
+
+public:
+    static void get_text_buffer_slot(Glib::RefPtr<Gsv::Buffer>& rTextBuffer, Gtk::TextIter* insertIter,
+                                     std::list<CtAnchoredWidget*>& anchoredWidgets,
+                                     xmlpp::Node *pNodeParent, int forceCharOffset = -1);
+    static bool populate_table_matrix_get_is_head_front(CtTableMatrix& tableMatrix, xmlpp::Element* pNodeElement);
 };
 
-class CtSQLiteRead : public CtDocRead
+class CtXmlWrite : public xmlpp::Document
 {
 public:
-    CtSQLiteRead(const char* filepath);
-    virtual ~CtSQLiteRead();
-    virtual void treeWalk(const Gtk::TreeIter* pParentIter=nullptr);
-    Glib::RefPtr<Gsv::Buffer> getTextBuffer(const std::string& syntax,
-                                            std::list<CtAnchoredWidget*>& anchoredWidgets,
-                                            const gint64& nodeId);
-    void pending_new_db_node(gint64 node_id) { /* todo: */ }
+    CtXmlWrite(const char* root_name);
+    virtual ~CtXmlWrite();
+    void treestore_to_dom(const std::list<gint64>& bookmarks, CtTreeIter ct_tree_iter);
+    void append_bookmarks(const std::list<gint64>& bookmarks);
+    void append_dom_node(CtTreeIter& ct_tree_iter,
+                         xmlpp::Element* p_node_parent=nullptr,
+                         bool to_disk=true,
+                         bool skip_children=true,
+                         const std::pair<int,int>& offset_range=std::make_pair(-1,-1));
+    void append_node_buffer(CtTreeIter& ct_tree_iter,
+                            xmlpp::Element* p_node_node,
+                            bool serialise_anchored_widgets,
+                            const std::pair<int,int>& offset_range=std::make_pair(-1,-1));
 
-private:
-    sqlite3* _pDb;
-    std::list<gint64> _sqlite3GetChildrenNodeIdFromFatherId(gint64 father_id);
-    void _sqlite3TreeWalkIter(gint64 nodeId, const Gtk::TreeIter* pParentIter);
-    CtNodeData _sqlite3GetNodeProperties(gint64 nodeId);
-    Gtk::TreeIter _sqlite3NodeProcess(gint64 nodeId, const Gtk::TreeIter* pParentIter);
-    void _getTextBufferAnchoredWidgets(Glib::RefPtr<Gsv::Buffer>& rTextBuffer,
-                                       std::list<CtAnchoredWidget*>& anchoredWidgets,
-                                       const gint64& nodeId,
-                                       const bool& has_codebox,
-                                       const bool& has_table,
-                                       const bool& has_image);
+public:
+    static void rich_txt_serialize(xmlpp::Element* p_node_parent,
+                                   Gtk::TextIter start_iter,
+                                   Gtk::TextIter end_iter,
+                                   std::map<const gchar*, std::string>& curr_attributes,
+                                   gchar change_case='n');
+};
+
+class CtSQLite : public CtDocRead
+{
+public:
+    CtSQLite(const char* filepath);
+    virtual ~CtSQLite();
+    bool get_db_open_ok() { return _dbOpenOk; }
+
+    bool read_populate_tree(const Gtk::TreeIter* pParentIter=nullptr) override;
+    bool write_db_full(const std::list<gint64>& bookmarks,
+                       CtTreeIter ct_tree_iter,
+                       const CtExporting exporting=CtExporting::No,
+                       const std::pair<int,int>& offset_range=std::make_pair(-1,-1));
+
+    Glib::RefPtr<Gsv::Buffer> get_text_buffer(const std::string& syntax,
+                                              std::list<CtAnchoredWidget*>& anchoredWidgets,
+                                              const gint64& nodeId) const;
+    void pending_edit_db_bookmarks();
+    void pending_edit_db_node_prop(const gint64 node_id);
+    void pending_edit_db_node_buff(const gint64 node_id);
+    void pending_edit_db_node_hier(const gint64 node_id);
+    void pending_new_db_node(const gint64 node_id);
+    void pending_rm_db_nodes(const std::vector<gint64>& node_ids);
+    bool pending_data_write(CtTreeStore* pTreeStore,
+                            const std::list<gint64>& bookmarks,
+                            const bool run_vacuum=false);
+    std::set<gint64> get_nodes_pending_rm() { return _syncPending.nodes_to_rm_set; }
+
+    struct CtNodeWriteDict
+    {
+        bool upd{false};
+        bool prop{false};
+        bool buff{false};
+        bool hier{false};
+        bool child{false};
+    };
+    struct CtSyncPending
+    {
+        std::unordered_map<gint64,CtNodeWriteDict> nodes_to_write_dict;
+        std::set<gint64> nodes_to_rm_set;
+        bool bookmarks_to_write{false};
+    };
+
+    static const char TABLE_NODE_CREATE[];
+    static const char TABLE_NODE_INSERT[];
+    static const char TABLE_NODE_DELETE[];
+    static const char TABLE_CODEBOX_CREATE[];
+    static const char TABLE_CODEBOX_INSERT[];
+    static const char TABLE_CODEBOX_DELETE[];
+    static const char TABLE_TABLE_CREATE[];
+    static const char TABLE_TABLE_INSERT[];
+    static const char TABLE_TABLE_DELETE[];
+    static const char TABLE_IMAGE_CREATE[];
+    static const char TABLE_IMAGE_INSERT[];
+    static const char TABLE_IMAGE_DELETE[];
+    static const char TABLE_CHILDREN_CREATE[];
+    static const char TABLE_CHILDREN_INSERT[];
+    static const char TABLE_CHILDREN_DELETE[];
+    static const char TABLE_BOOKMARK_CREATE[];
+    static const char TABLE_BOOKMARK_INSERT[];
+    static const char TABLE_BOOKMARK_DELETE[];
+    static const char ERR_SQLITE_PREPV2[];
+    static const char ERR_SQLITE_STEP[];
+
+protected:
+    bool _get_children_node_ids_from_father_id(gint64 father_id, std::list<gint64>& ret_children);
+    bool _read_populate_tree_iter(gint64 nodeId, const Gtk::TreeIter* pParentIter);
+    bool _get_node_properties(gint64 nodeId, CtNodeData& nodeData);
+    bool _read_node(gint64 nodeId, const Gtk::TreeIter* pParentIter, Gtk::TreeIter& newIter);
+    void _get_text_buffer_anchored_widgets(Glib::RefPtr<Gsv::Buffer>& rTextBuffer,
+                                           std::list<CtAnchoredWidget*>& anchoredWidgets,
+                                           const gint64& nodeId,
+                                           const bool& has_codebox,
+                                           const bool& has_table,
+                                           const bool& has_image) const;
+    bool _exec_no_callback(const char* sqlCmd);
+    bool _exec_bind_int64(const char* sqlCmd, const gint64 bind_int64);
+    bool _remove_db_node_n_children(const gint64 node_id);
+    bool _create_all_tables();
+    bool _write_db_node(CtTreeIter ct_tree_iter,
+                        const gint64 sequence,
+                        const gint64 node_father_id,
+                        const CtNodeWriteDict write_dict,
+                        const CtExporting exporting=CtExporting::No,
+                        const std::pair<int,int>& offset_range=std::make_pair(-1,-1));
+    bool _write_db_bookmarks(const std::list<gint64>& bookmarks);
+
+    sqlite3* _pDb{nullptr};
+    bool     _dbOpenOk{false};
+    CtSyncPending _syncPending;
 };

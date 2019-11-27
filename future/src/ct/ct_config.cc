@@ -26,7 +26,7 @@
 
 
 CtConfig::CtConfig()
- : _filepath(Glib::build_filename(Glib::get_user_config_dir(), "cherrytree", "config.cfg"))
+ : _filepath(Glib::build_filename(Glib::get_user_config_dir(), CtConst::APP_NAME, "config.cfg"))
 {
     bool config_found = _checkLoadFromFile();
     std::cout << _filepath << " " << (config_found ? "parsed":"missing") << std::endl;
@@ -44,7 +44,7 @@ CtConfig::~CtConfig()
 bool CtConfig::_populateBoolFromKeyfile(const gchar* key, bool* pTarget)
 {
     bool gotIt{false};
-    if (_pKeyFile->has_key(_currentGroup, key))
+    if (_pKeyFile->has_group(_currentGroup) && _pKeyFile->has_key(_currentGroup, key))
     {
         try
         {
@@ -72,7 +72,7 @@ bool CtConfig::_populateBoolFromKeyfile(const gchar* key, bool* pTarget)
 bool CtConfig::_populateIntFromKeyfile(const gchar* key, int* pTarget)
 {
     bool gotIt{false};
-    if (_pKeyFile->has_key(_currentGroup, key))
+    if (_pKeyFile->has_group(_currentGroup) && _pKeyFile->has_key(_currentGroup, key))
     {
         try
         {
@@ -90,7 +90,7 @@ bool CtConfig::_populateIntFromKeyfile(const gchar* key, int* pTarget)
 bool CtConfig::_populateDoubleFromKeyfile(const gchar* key, double* pTarget)
 {
     bool gotIt{false};
-    if (_pKeyFile->has_key(_currentGroup, key))
+    if (_pKeyFile->has_group(_currentGroup) && _pKeyFile->has_key(_currentGroup, key))
     {
         try
         {
@@ -107,9 +107,12 @@ bool CtConfig::_populateDoubleFromKeyfile(const gchar* key, double* pTarget)
 
 void CtConfig::_populateMapFromCurrentGroup(std::map<std::string, std::string> *p_map)
 {
-    for (std::string key : _pKeyFile->get_keys(_currentGroup))
+    if (_pKeyFile->has_group(_currentGroup))
     {
-        (*p_map)[key] = _pKeyFile->get_value(_currentGroup, key);
+        for (std::string key : _pKeyFile->get_keys(_currentGroup))
+        {
+            (*p_map)[key] = _pKeyFile->get_value(_currentGroup, key);
+        }
     }
 }
 
@@ -172,7 +175,7 @@ void CtConfig::_populateFromKeyfile()
         restoreExpColl = static_cast<CtRestoreExpColl>(rest_exp_coll);
     }
     _populateStringFromKeyfile("expanded_collapsed_string", &expandedCollapsedString);
-    recentDocsRestore.resize(CtConst::MAX_RECENT_DOCS_RESTORE);
+    recentDocsRestore.resize((size_t)CtConst::MAX_RECENT_DOCS_RESTORE);
     for (i=0; i<=CtConst::MAX_RECENT_DOCS_RESTORE; i++)
     {
         snprintf(temp_key, MAX_TEMP_KEY_SIZE, "expcollnam%d", i+1);
@@ -214,6 +217,7 @@ void CtConfig::_populateFromKeyfile()
     _populateIntFromKeyfile("embfile_max_size", &embfileMaxSize);
     _populateBoolFromKeyfile("line_wrapping", &lineWrapping);
     _populateBoolFromKeyfile("auto_smart_quotes", &autoSmartQuotes);
+    _populateBoolFromKeyfile("enable_symbol_autoreplace", &enableSymbolAutoreplace);
     _populateIntFromKeyfile("wrapping_indent", &wrappingIndent);
     _populateBoolFromKeyfile("auto_indent", &autoIndent);
     _populateBoolFromKeyfile("rt_show_white_spaces", &rtShowWhiteSpaces);
@@ -228,6 +232,8 @@ void CtConfig::_populateFromKeyfile()
     _populateStringFromKeyfile("chars_listbul", &charsListbul);
     _populateStringFromKeyfile("chars_toc", &charsToc);
     _populateStringFromKeyfile("chars_todo", &charsTodo);
+    _populateStringFromKeyfile("chars_smart_dquote", &chars_smart_dquote);
+    _populateStringFromKeyfile("chars_smart_squote", &chars_smart_squote);
     _populateStringFromKeyfile("latest_tag_prop", &latestTagProp);
     _populateStringFromKeyfile("latest_tag_val", &latestTagVal);
     _populateStringFromKeyfile("timestamp_format", &timestampFormat);

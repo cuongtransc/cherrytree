@@ -13,6 +13,6 @@ shell_cmd = ["xgettext",
              "--language=Python",
              "--from-code=utf-8",
              "--keyword=_",
-             "--output=%s" % os.path.join(SCRIPT_DIR, APP_NAME + ".pot")
+             "--output=%s" % os.path.join(SCRIPT_DIR, APP_NAME+".pot")
              ] + PY_FILES
 subprocess.call(shell_cmd)

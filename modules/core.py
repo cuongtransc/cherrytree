@@ -1865,7 +1865,7 @@ iter_end, exclude_iter_sel_end=True)
             return False
         dialog.connect("key_press_event", on_key_press_enter_password_dialog)
         dialog.show_all()
-        if not cons.IS_WIN_OS:
+        if not cons.IS_WIN_OS and not cons.IS_MAC_OS:
             the_window = dialog.get_window()
             the_window.focus(gtk.gdk.x11_get_server_time(the_window))
         dialog.present()
@@ -2222,16 +2222,19 @@ iter_end, exclude_iter_sel_end=True)
                                             self.print_handler.page_setup,
                                             self.print_handler.settings)
 
-    def export_to_pdf(self, action):
+    def export_to_pdf(self, *args):
         """Start Export to PDF Operations"""
         self.print_handler.pdf_filepath = cons.CHAR_TILDE
-        self.export_print(action)
+        self.export_print(args)
         self.print_handler.pdf_filepath = ""
 
-    def export_print(self, action):
+    def export_print(self, args):
         """Start Print Operations"""
         if not self.is_there_selected_node_or_error(): return
-        export_type = support.dialog_selnode_selnodeandsub_alltree(self, also_selection=True, also_include_node_name=True, also_new_node_page=True)
+        if args and args[0] == "Auto":
+            export_type = 3
+        else:
+            export_type = support.dialog_selnode_selnodeandsub_alltree(self, also_selection=True, also_include_node_name=True, also_new_node_page=True)
         if export_type == 0: return
         pdf_handler = exports.ExportPrint(self)
         if export_type == 1:
@@ -2251,7 +2254,12 @@ iter_end, exclude_iter_sel_end=True)
             pdf_handler.nodes_all_export_print(self.curr_tree_iter, self.last_include_node_name, self.last_new_node_page)
         elif export_type == 3:
             # all nodes
-            if self.print_handler.pdf_filepath == cons.CHAR_TILDE:
+            if args and args[0] == "Auto":
+                self.print_handler.pdf_filepath = args[1]
+                export_overwrite = args[2]
+                if not export_overwrite and os.path.isfile(self.print_handler.pdf_filepath):
+                    return
+            elif self.print_handler.pdf_filepath == cons.CHAR_TILDE:
                 pdf_filepath = pdf_handler.get_pdf_filepath(self.file_name)
                 if not pdf_filepath: return
                 self.print_handler.pdf_filepath = pdf_filepath
@@ -3166,11 +3174,23 @@ iter_end, exclude_iter_sel_end=True)
                     self.ctdb_handler.pending_edit_db_node_prop(self.treestore[tree_iter][3])
             elif update_type == "ndel":
                 if tree_iter:
-                    self.ctdb_handler.pending_rm_db_node(self.treestore[tree_iter][3])
-                    self.state_machine.delete_states(self.treestore[tree_iter][3])
+                    # the removal will also affect children
+                    top_node_id = self.get_node_id_from_tree_iter(tree_iter)
+                    for node_id in ([top_node_id] + self.get_children_node_ids(tree_iter)):
+                        self.ctdb_handler.pending_rm_db_node(node_id)
+                        self.state_machine.delete_states(node_id)
             elif update_type == "book": self.ctdb_handler.pending_edit_db_bookmarks()
         if new_state_machine and tree_iter:
             self.state_machine.update_state()
+
+    def get_children_node_ids(self, parent_iter):
+        ret_list = []
+        tree_iter = self.treestore.iter_children(parent_iter)
+        while not (tree_iter is None):
+            ret_list.append(self.get_node_id_from_tree_iter(tree_iter))
+            ret_list += self.get_children_node_ids(tree_iter)
+            tree_iter = self.treestore.iter_next(tree_iter)
+        return ret_list
 
     def update_window_save_not_needed(self):
         """Window title not preceeded by an asterix"""
@@ -4207,7 +4227,9 @@ iter_end, exclude_iter_sel_end=True)
     def paste_as_plain_text(self, *args):
         """Paste as Plain Text"""
         self.clipboard_handler.force_plain_text = True
-        self.sourceview.emit("paste-clipboard")
+        anchor = self.codeboxes_handler.codebox_in_use_get_anchor()
+        if anchor is not None: anchor.sourceview.emit("paste-clipboard")
+        else: self.sourceview.emit("paste-clipboard")
 
     def image_cut(self, *args):
         """Cut Image"""
@@ -4885,7 +4907,7 @@ iter_end, exclude_iter_sel_end=True)
                 list_info = self.lists_handler.get_paragraph_list_info(iter_insert)
                 if list_info and list_info["num"] == 0:
                     if self.is_curr_node_not_read_only_or_error():
-                        iter_start_list = self.curr_buffer.get_iter_at_offset(list_info["startoffs"])
+                        iter_start_list = self.curr_buffer.get_iter_at_offset(list_info["startoffs"]+3*list_info["level"])
                         self.lists_handler.todo_list_rotate_status(iter_start_list, self.curr_buffer)
                         return True
             elif keyname == cons.STR_KEY_RETURN:
@@ -5040,6 +5062,7 @@ iter_end, exclude_iter_sel_end=True)
     def remove_text_formatting(self, *args):
         """Cleans the Selected Text from All Formatting Tags"""
         if not self.node_sel_and_rich_text(): return
+        if not self.is_curr_node_not_read_only_or_error(): return
         if not self.curr_buffer.get_has_selection() and not support.apply_tag_try_automatic_bounds(self):
             support.dialog_warning(_("No Text is Selected"), self.window)
             return

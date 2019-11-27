@@ -313,12 +313,12 @@ def on_sourceview_event_after_key_press(dad, text_view, event, syntax_highl):
             if offset_1 > 0:
                 if keyname == cons.STR_KEY_DQUOTE:
                     start_char = cons.CHAR_DQUOTE
-                    char_0 = cons.CHAR_SMART_DQUOTE_0
-                    char_1 = cons.CHAR_SMART_DQUOTE_1
+                    char_0 = dad.chars_smart_dquote[0]
+                    char_1 = dad.chars_smart_dquote[1]
                 else:
                     start_char = cons.CHAR_SQUOTE
-                    char_0 = cons.CHAR_SMART_SQUOTE_0
-                    char_1 = cons.CHAR_SMART_SQUOTE_1
+                    char_0 = dad.chars_smart_squote[0]
+                    char_1 = dad.chars_smart_squote[1]
                 iter_start = text_buffer.get_iter_at_offset(offset_1-1)
                 offset_0 = -1
                 while iter_start:
@@ -410,7 +410,7 @@ def on_sourceview_event_after_key_press(dad, text_view, event, syntax_highl):
                     new_num += 1
                     list_info = dad.lists_handler.get_next_list_info_on_level(iter_start, curr_level)
         else: # keyname == cons.STR_KEY_SPACE
-            if is_code is False and iter_start.backward_chars(2):
+            if is_code is False and iter_start.backward_chars(2) and dad.enable_symbol_autoreplace:
                 if iter_start.get_char() == cons.CHAR_GREATER and iter_start.backward_char():
                     if iter_start.get_line_offset() == 0:
                         # at line start
@@ -870,12 +870,12 @@ This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation; either version 3 of the License, or
 (at your option) any later version.
-  
+
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
-  
+
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,

@@ -19,18 +19,9 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #       MA 02110-1301, USA.
 
-import cStringIO
-import codecs
-import copy
-import csv
-import gtk
-import os
-
-import pango
-
-import cons
-import menus
-import support
+import gtk, pango
+import os, csv, codecs, cStringIO, copy
+import cons, menus, support
 
 
 class TablesHandler:
@@ -320,9 +311,9 @@ class TablesHandler:
             self.table_insert(iter_insert)
         else:
             filepath = support.dialog_file_select(filter_pattern=["*.csv"],
-                                                  filter_name=_("CSV File"),
-                                                  curr_folder=self.dad.pick_dir_csv,
-                                                  parent=self.dad.window)
+                filter_name=_("CSV File"),
+                curr_folder=self.dad.pick_dir_csv,
+                parent=self.dad.window)
             if filepath != None:
                 self.dad.pick_dir_csv = os.path.dirname(filepath)
                 support.text_file_rm_emptylines(filepath)

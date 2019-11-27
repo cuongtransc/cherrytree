@@ -38,9 +38,17 @@ if cons.HAS_APPINDICATOR: import appindicator
 
 ICONS_SIZE = {1: gtk.ICON_SIZE_MENU, 2: gtk.ICON_SIZE_SMALL_TOOLBAR, 3: gtk.ICON_SIZE_LARGE_TOOLBAR,
               4: gtk.ICON_SIZE_DND, 5: gtk.ICON_SIZE_DIALOG}
+if cons.IS_WIN_OS:
+    LINK_CUSTOM_ACTION_DEFAULT_WEB = "explorer %s &"
+else:
+    LINK_CUSTOM_ACTION_DEFAULT_WEB = "firefox %s &"
+if cons.IS_WIN_OS:
+    LINK_CUSTOM_ACTION_DEFAULT_FILE = "explorer %s &"
+elif cons.IS_MAC_OS:
+    LINK_CUSTOM_ACTION_DEFAULT_FILE = "open %s &"
+else:
+    LINK_CUSTOM_ACTION_DEFAULT_FILE = "xdg-open %s &"
 
-LINK_CUSTOM_ACTION_DEFAULT_WEB = "firefox %s &"
-LINK_CUSTOM_ACTION_DEFAULT_FILE = "xdg-open %s &"
 CODE_EXEC_TMP_SRC = "<tmp_src_path>"
 CODE_EXEC_TMP_BIN = "<tmp_bin_path>"
 CODE_EXEC_COMMAND = "<command>"
@@ -66,20 +74,22 @@ CODE_EXEC_TERM_RUN_DEFAULT = {
 "linux" : "xterm -hold -geometry 180x45 -e \"%s\"" % CODE_EXEC_COMMAND,
 "win" : "start cmd /k \"%s\"" % CODE_EXEC_COMMAND,
 }
-DEFAULT_MONOSPACE_BG = "#eeeeee"
+DEFAULT_MONOSPACE_BG = "#7f7f7f"
 MAX_SIZE_EMBFILE_MB_DEFAULT = 10
 HORIZONTAL_RULE = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 COLOR_PALETTE_DEFAULT = ["#000000", "#ffffff", "#7f7f7f", "#ff0000", "#a020f0",
                          "#0000ff", "#add8e6", "#00ff00", "#ffff00", "#ffa500",
                          "#e6e6fa", "#a52a2a", "#8b6914", "#1e90ff", "#ffc0cb",
                          "#90ee90", "#1a1a1a", "#4d4d4d", "#bfbfbf", "#e5e5e5"]
-SPECIAL_CHARS_DEFAULT = unicode("“”„‘’•◇▪▸☐☑☒★…‰€©®™°↓↑→←↔↵⇓⇑⇒⇐⇔»«▼▲►◄≤≥≠≈±¹²³½¼⅛×÷∞ø∑√∫ΔδΠπΣΦΩωαβγεηλμ☺☻☼♥♣♦✔♀♂♪♫✝", cons.STR_UTF8, cons.STR_IGNORE)
+SPECIAL_CHARS_DEFAULT = unicode("“”„‘’•◇▪▸☐☑☒★…‰€©®™°↓↑→←↔↵⇓⇑⇒⇐⇔»«▼▲►◄≤≥≠≈±¹²³½¼⅛×÷∞ø∑√∫ΔδΠπΣσΦΩωαβγεηλμ☺☻☼♥♣♦✔♀♂♪♫✝", cons.STR_UTF8, cons.STR_IGNORE)
 SELWORD_CHARS_DEFAULT = unicode(".-@", cons.STR_UTF8, cons.STR_IGNORE)
 CHARS_LISTBUL_DEFAULT = unicode("•◇▪-→⇒", cons.STR_UTF8, cons.STR_IGNORE)
 CHARS_TODO_DEFAULT = unicode("☐☑☒", cons.STR_UTF8, cons.STR_IGNORE)
 CHARS_TOC_DEFAULT = unicode("▸•◇▪", cons.STR_UTF8, cons.STR_IGNORE)
+CHARS_SMART_DQUOTE_DEFAULT = unicode("“”", cons.STR_UTF8, cons.STR_IGNORE)
+CHARS_SMART_SQUOTE_DEFAULT = unicode("‘’", cons.STR_UTF8, cons.STR_IGNORE)
 NODES_ON_NODE_NAME_HEADER_DEFAULT = 3
-TIMESTAMP_FORMAT_DEFAULT = "%Y-%m-%d %H:%M:%S"
+TIMESTAMP_FORMAT_DEFAULT = "%Y/%m/%d - %H:%M"
 SEPARATOR_ASCII_REPR = "---------"
 JOURNAL_DAY_FORMAT_DEFAULT = "%d %a"
 
@@ -270,6 +280,7 @@ def config_file_load(dad):
         dad.embfile_max_size = cfg.getint(section, "embfile_max_size") if cfg.has_option(section, "embfile_max_size") else MAX_SIZE_EMBFILE_MB_DEFAULT
         dad.line_wrapping = cfg.getboolean(section, "line_wrapping") if cfg.has_option(section, "line_wrapping") else True
         dad.auto_smart_quotes = cfg.getboolean(section, "auto_smart_quotes") if cfg.has_option(section, "auto_smart_quotes") else True
+        dad.enable_symbol_autoreplace = cfg.getboolean(section, "enable_symbol_autoreplace") if cfg.has_option(section, "enable_symbol_autoreplace") else True
         dad.wrapping_indent = cfg.getint(section, "wrapping_indent") if cfg.has_option(section, "wrapping_indent") else -14
         dad.auto_indent = cfg.getboolean(section, "auto_indent") if cfg.has_option(section, "auto_indent") else True
         dad.rt_show_white_spaces = cfg.getboolean(section, "rt_show_white_spaces") if cfg.has_option(section, "rt_show_white_spaces") else False
@@ -284,6 +295,8 @@ def config_file_load(dad):
         dad.chars_listbul = unicode(cfg.get(section, "chars_listbul"), cons.STR_UTF8, cons.STR_IGNORE) if cfg.has_option(section, "chars_listbul") else CHARS_LISTBUL_DEFAULT
         dad.chars_todo = unicode(cfg.get(section, "chars_todo"), cons.STR_UTF8, cons.STR_IGNORE) if cfg.has_option(section, "chars_todo") else CHARS_TODO_DEFAULT
         dad.chars_toc = unicode(cfg.get(section, "chars_toc"), cons.STR_UTF8, cons.STR_IGNORE) if cfg.has_option(section, "chars_toc") else CHARS_TOC_DEFAULT
+        dad.chars_smart_dquote = unicode(cfg.get(section, "chars_smart_dquote"), cons.STR_UTF8, cons.STR_IGNORE) if cfg.has_option(section, "chars_smart_dquote") else CHARS_SMART_DQUOTE_DEFAULT
+        dad.chars_smart_squote = unicode(cfg.get(section, "chars_smart_squote"), cons.STR_UTF8, cons.STR_IGNORE) if cfg.has_option(section, "chars_smart_squote") else CHARS_SMART_SQUOTE_DEFAULT
         if cfg.has_option(section, "latest_tag_prop") and cfg.has_option(section, "latest_tag_val"):
             dad.latest_tag[0] = cfg.get(section, "latest_tag_prop")
             dad.latest_tag[1] = cfg.get(section, "latest_tag_val")
@@ -324,10 +337,10 @@ def config_file_load(dad):
         dad.table_col_max = cfg.getint(section, "table_col_max") if cfg.has_option(section, "table_col_max") else 60
 
         section = "fonts"
-        dad.rt_font = cfg.get(section, "rt_font") if cfg.has_option(section, "rt_font") else "Open Sans 12" # default rich text font
-        dad.pt_font = cfg.get(section, "pt_font") if cfg.has_option(section, "pt_font") else "Open Sans 12" # default plain text font
-        dad.tree_font = cfg.get(section, "tree_font") if cfg.has_option(section, "tree_font") else "Open Sans 10" # default tree font
-        dad.code_font = cfg.get(section, "code_font") if cfg.has_option(section, "code_font") else "Source Code Pro 10" # default code font
+        dad.rt_font = cfg.get(section, "rt_font") if cfg.has_option(section, "rt_font") else "Sans 9" # default rich text font
+        dad.pt_font = cfg.get(section, "pt_font") if cfg.has_option(section, "pt_font") else "Sans 9" # default plain text font
+        dad.tree_font = cfg.get(section, "tree_font") if cfg.has_option(section, "tree_font") else "Sans 8" # default tree font
+        dad.code_font = cfg.get(section, "code_font") if cfg.has_option(section, "code_font") else "Monospace 9" # default code font
 
         section = "colors"
         dad.rt_def_fg = cfg.get(section, "rt_def_fg") if cfg.has_option(section, "rt_def_fg") else cons.RICH_TEXT_DARK_FG
@@ -385,13 +398,13 @@ def config_file_load(dad):
         dad.curr_colors = {'f':None, 'b':None, 'n':None}
         dad.syntax_highlighting = cons.RICH_TEXT_ID
         dad.auto_syn_highl = "sh"
-        dad.style_scheme = cons.STYLE_SCHEME_TANGO
-        dad.tree_font = "Open Sans 10" # default tree font
-        dad.rt_font = "Open Sans 12" # default rich text font
-        dad.pt_font = "Open Sans 12" # default plain text font
-        dad.code_font = "Source Code Pro 10" # default code font
-        dad.rt_def_fg = cons.RICH_TEXT_LIGHT_FG
-        dad.rt_def_bg = cons.RICH_TEXT_LIGHT_BG
+        dad.style_scheme = cons.STYLE_SCHEME_DARK
+        dad.tree_font = "Sans 8" # default tree font
+        dad.rt_font = "Sans 9" # default rich text font
+        dad.pt_font = "Sans 9" # default plain text font
+        dad.code_font = "Monospace 9" # default code font
+        dad.rt_def_fg = cons.RICH_TEXT_DARK_FG
+        dad.rt_def_bg = cons.RICH_TEXT_DARK_BG
         dad.tt_def_fg = cons.TREE_TEXT_LIGHT_FG
         dad.tt_def_bg = cons.TREE_TEXT_LIGHT_BG
         dad.palette_list = COLOR_PALETTE_DEFAULT
@@ -405,6 +418,8 @@ def config_file_load(dad):
         dad.chars_listbul = CHARS_LISTBUL_DEFAULT
         dad.chars_todo = CHARS_TODO_DEFAULT
         dad.chars_toc = CHARS_TOC_DEFAULT
+        dad.chars_smart_dquote = CHARS_SMART_DQUOTE_DEFAULT
+        dad.chars_smart_squote = CHARS_SMART_SQUOTE_DEFAULT
         dad.enable_spell_check = False
         dad.spell_check_lang = SPELL_CHECK_LANG_DEFAULT
         dad.show_line_numbers = False
@@ -416,6 +431,7 @@ def config_file_load(dad):
         dad.embfile_max_size = MAX_SIZE_EMBFILE_MB_DEFAULT
         dad.line_wrapping = True
         dad.auto_smart_quotes = True
+        dad.enable_symbol_autoreplace = True
         dad.wrapping_indent = -14
         dad.auto_indent = True
         dad.toolbar_ui_list = menus.TOOLBAR_VEC_DEFAULT
@@ -608,6 +624,7 @@ def config_file_save(dad):
     cfg.set(section, "embfile_max_size", dad.embfile_max_size)
     cfg.set(section, "line_wrapping", dad.line_wrapping)
     cfg.set(section, "auto_smart_quotes", dad.auto_smart_quotes)
+    cfg.set(section, "enable_symbol_autoreplace", dad.enable_symbol_autoreplace)
     cfg.set(section, "wrapping_indent", dad.wrapping_indent)
     cfg.set(section, "auto_indent", dad.auto_indent)
     cfg.set(section, "rt_show_white_spaces", dad.rt_show_white_spaces)
@@ -622,6 +639,8 @@ def config_file_save(dad):
     cfg.set(section, "chars_listbul", dad.chars_listbul)
     cfg.set(section, "chars_todo", dad.chars_todo)
     cfg.set(section, "chars_toc", dad.chars_toc)
+    cfg.set(section, "chars_smart_dquote", dad.chars_smart_dquote)
+    cfg.set(section, "chars_smart_squote", dad.chars_smart_squote)
     cfg.set(section, "latest_tag_prop", dad.latest_tag[0])
     cfg.set(section, "latest_tag_val", dad.latest_tag[1])
     cfg.set(section, "timestamp_format", dad.timestamp_format)
@@ -770,7 +789,7 @@ def set_tree_path_and_cursor_pos(dad):
             dad.sourceview.grab_focus()
             dad.curr_buffer.place_cursor(dad.curr_buffer.get_iter_at_offset(dad.cursor_position))
             dad.sourceview.scroll_to_mark(dad.curr_buffer.get_insert(), cons.SCROLL_MARGIN)
-            if dad.tree_click_expand:
+            if dad.tree_click_expand is True and dad.rest_exp_coll != 2:
                 dad.treeview.expand_row(dad.node_path, open_all=False)
     else: node_iter_to_focus = None
     if not node_iter_to_focus:
@@ -1205,7 +1224,11 @@ def preferences_tab_text(dad, vbox_text, pref_dialog):
     checkbutton_auto_smart_quotes = gtk.CheckButton(_("Enable Smart Quotes Auto Replacement"))
     checkbutton_auto_smart_quotes.set_active(dad.auto_smart_quotes)
 
+    checkbutton_enable_symbol_autoreplace = gtk.CheckButton(_("Enable Symbol Auto Replacement"))
+    checkbutton_enable_symbol_autoreplace.set_active(dad.enable_symbol_autoreplace)
+
     vbox_editor.pack_start(checkbutton_auto_smart_quotes, expand=False)
+    vbox_editor.pack_start(checkbutton_enable_symbol_autoreplace, expand=False)
 
     frame_editor = gtk.Frame(label="<b>"+_("Text Editor")+"</b>")
     frame_editor.get_label_widget().set_use_markup(True)
@@ -1218,7 +1241,10 @@ def preferences_tab_text(dad, vbox_text, pref_dialog):
     vbox_text.pack_start(frame_editor, expand=False)
     def on_checkbutton_auto_smart_quotes_toggled(checkbutton):
         dad.auto_smart_quotes = checkbutton.get_active()
+    def on_checkbutton_enable_symbol_autoreplace_toggled(checkbutton):
+        dad.enable_symbol_autoreplace = checkbutton.get_active()
     checkbutton_auto_smart_quotes.connect('toggled', on_checkbutton_auto_smart_quotes_toggled)
+    checkbutton_enable_symbol_autoreplace.connect('toggled', on_checkbutton_enable_symbol_autoreplace_toggled)
 
 def preferences_tab_plain_text_n_code(dad, vbox_code_nodes, pref_dialog):
     """Preferences Dialog, Plain Text and Code Tab"""
