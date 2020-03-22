@@ -74,7 +74,7 @@ CODE_EXEC_TERM_RUN_DEFAULT = {
 "linux" : "xterm -hold -geometry 180x45 -e \"%s\"" % CODE_EXEC_COMMAND,
 "win" : "start cmd /k \"%s\"" % CODE_EXEC_COMMAND,
 }
-DEFAULT_MONOSPACE_BG = "#7f7f7f"
+DEFAULT_MONOSPACE_BG = "#eeeeee"
 MAX_SIZE_EMBFILE_MB_DEFAULT = 10
 HORIZONTAL_RULE = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 COLOR_PALETTE_DEFAULT = ["#000000", "#ffffff", "#7f7f7f", "#ff0000", "#a020f0",
@@ -89,7 +89,7 @@ CHARS_TOC_DEFAULT = unicode("▸•◇▪", cons.STR_UTF8, cons.STR_IGNORE)
 CHARS_SMART_DQUOTE_DEFAULT = unicode("“”", cons.STR_UTF8, cons.STR_IGNORE)
 CHARS_SMART_SQUOTE_DEFAULT = unicode("‘’", cons.STR_UTF8, cons.STR_IGNORE)
 NODES_ON_NODE_NAME_HEADER_DEFAULT = 3
-TIMESTAMP_FORMAT_DEFAULT = "%Y/%m/%d - %H:%M"
+TIMESTAMP_FORMAT_DEFAULT = "%Y-%m-%d %H:%M:%S"
 SEPARATOR_ASCII_REPR = "---------"
 JOURNAL_DAY_FORMAT_DEFAULT = "%d %a"
 
@@ -337,10 +337,10 @@ def config_file_load(dad):
         dad.table_col_max = cfg.getint(section, "table_col_max") if cfg.has_option(section, "table_col_max") else 60
 
         section = "fonts"
-        dad.rt_font = cfg.get(section, "rt_font") if cfg.has_option(section, "rt_font") else "Sans 9" # default rich text font
-        dad.pt_font = cfg.get(section, "pt_font") if cfg.has_option(section, "pt_font") else "Sans 9" # default plain text font
-        dad.tree_font = cfg.get(section, "tree_font") if cfg.has_option(section, "tree_font") else "Sans 8" # default tree font
-        dad.code_font = cfg.get(section, "code_font") if cfg.has_option(section, "code_font") else "Monospace 9" # default code font
+        dad.rt_font = cfg.get(section, "rt_font") if cfg.has_option(section, "rt_font") else "Open Sans 12" # default rich text font
+        dad.pt_font = cfg.get(section, "pt_font") if cfg.has_option(section, "pt_font") else "Open Sans 12" # default plain text font
+        dad.tree_font = cfg.get(section, "tree_font") if cfg.has_option(section, "tree_font") else "Open Sans 10" # default tree font
+        dad.code_font = cfg.get(section, "code_font") if cfg.has_option(section, "code_font") else "Source Code Pro 10" # default code font
 
         section = "colors"
         dad.rt_def_fg = cfg.get(section, "rt_def_fg") if cfg.has_option(section, "rt_def_fg") else cons.RICH_TEXT_DARK_FG
@@ -398,13 +398,13 @@ def config_file_load(dad):
         dad.curr_colors = {'f':None, 'b':None, 'n':None}
         dad.syntax_highlighting = cons.RICH_TEXT_ID
         dad.auto_syn_highl = "sh"
-        dad.style_scheme = cons.STYLE_SCHEME_DARK
-        dad.tree_font = "Sans 8" # default tree font
-        dad.rt_font = "Sans 9" # default rich text font
-        dad.pt_font = "Sans 9" # default plain text font
-        dad.code_font = "Monospace 9" # default code font
-        dad.rt_def_fg = cons.RICH_TEXT_DARK_FG
-        dad.rt_def_bg = cons.RICH_TEXT_DARK_BG
+        dad.style_scheme = cons.STYLE_SCHEME_LIGHT
+        dad.tree_font = "Open Sans 10" # default tree font
+        dad.rt_font = "Open Sans 12" # default rich text font
+        dad.pt_font = "Open Sans 12" # default plain text font
+        dad.code_font = "Source Code Pro 10" # default code font
+        dad.rt_def_fg = cons.RICH_TEXT_LIGHT_FG
+        dad.rt_def_bg = cons.RICH_TEXT_LIGHT_BG
         dad.tt_def_fg = cons.TREE_TEXT_LIGHT_FG
         dad.tt_def_bg = cons.TREE_TEXT_LIGHT_BG
         dad.palette_list = COLOR_PALETTE_DEFAULT
